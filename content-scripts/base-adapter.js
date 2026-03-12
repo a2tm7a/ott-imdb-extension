@@ -158,32 +158,35 @@ class BaseAdapter {
       return;
     }
 
-    // Ensure the container can anchor the absolutely-positioned badge.
-    // We only set position:relative — we do NOT touch overflow:hidden,
-    // as Netflix relies on it for its hover expand animations.
-    const containerStyle = window.getComputedStyle(container);
-    if (containerStyle.position === 'static') {
-      console.debug(`[IMDB OTT] Setting position:relative on container:`, container.className);
-      container.style.position = 'relative';
-    }
-
-    const badge = document.createElement('div');
-    badge.className = 'imdb-ott-badge';
-    badge.setAttribute('data-imdb-id', data.imdbID || '');
-    badge.title = `IMDB: ${data.imdbRating} – ${data.title} (${data.year})`;
-
     const rating = parseFloat(data.imdbRating);
     const colorClass =
       rating >= 8 ? 'imdb-ott-badge--great'
       : rating >= 6.5 ? 'imdb-ott-badge--good'
       : 'imdb-ott-badge--poor';
 
-    badge.classList.add(colorClass);
+    const badge = document.createElement('div');
+    badge.className = `imdb-ott-badge ${colorClass}`;
     badge.innerHTML = `<span class="imdb-ott-badge__star">★</span><span class="imdb-ott-badge__rating">${data.imdbRating}</span>`;
 
-    // No click handler — badge is purely informational (pointer-events:none in CSS)
+    // Wrap badge in a zero-size absolutely-positioned anchor so we never
+    // mutate any inline styles on Netflix's own elements.
+    const anchor = document.createElement('div');
+    anchor.className = 'imdb-ott-anchor';
+    anchor.style.cssText = [
+      'position:absolute',
+      'top:0', 'left:0', 'right:0', 'bottom:0',
+      'width:100%', 'height:100%',
+      'pointer-events:none',
+      'z-index:99998',
+      'overflow:visible',
+    ].join(';');
+    anchor.appendChild(badge);
 
-    container.appendChild(badge);
+    // Insert anchor as first child so it sits behind Netflix's own overlays
+    // (TOP 10 badge etc.) which come later in the DOM.
+    container.style.position = container.style.position || 'relative';
+    container.insertBefore(anchor, container.firstChild);
+
     console.log(`[IMDB OTT] Badge injected: ${data.title} → ${data.imdbRating}`);
   }
 }

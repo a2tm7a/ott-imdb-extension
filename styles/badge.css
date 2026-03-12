@@ -1,82 +1,66 @@
 /* ============================================================
    Badge Overlay Styles
-   A compact, non-intrusive text overlay on thumbnails.
-   Must NOT affect the layout of the host page.
+   Only styles our own .imdb-ott-badge element.
+   Does NOT touch any Netflix / OTT platform CSS classes.
    ============================================================ */
 
 .imdb-ott-badge {
-  /* Positioning – sits in bottom-left corner of the thumbnail */
-  position: absolute;
-  bottom: 6px;
-  left: 6px;
-  z-index: 9999;
+  position: absolute !important;
+  top: 4px !important;
+  right: 4px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 99999 !important;
 
-  /* Sizing – never stretches to fill parent */
-  width: fit-content !important;
-  max-width: 60px;
-  align-self: flex-start !important;
-  flex-shrink: 0 !important;
-
-  /* Layout of star + number */
   display: inline-flex !important;
-  align-items: center;
-  gap: 2px;
+  align-items: center !important;
+  gap: 2px !important;
 
-  /* Visual */
-  padding: 2px 5px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.70);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  padding: 2px 5px !important;
+  margin: 0 !important;
+
+  border-radius: 3px !important;
+  background: rgba(0, 0, 0, 0.75) !important;
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
   font-size: 11px !important;
   font-weight: 700 !important;
-  line-height: 1.2 !important;
-  color: #fff !important;
-  white-space: nowrap;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+  color: #ffffff !important;
 
-  /* No interaction – purely decorative */
   pointer-events: none !important;
-  user-select: none;
+  user-select: none !important;
+  cursor: default !important;
 
-  /* Subtle fade-in */
-  opacity: 0;
-  animation: imdb-badge-in 0.2s ease 0.05s forwards;
-
-  /* Do not interact with host page box model */
   box-sizing: border-box !important;
-  margin: 0 !important;
-}
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
 
-/* Rating colour tiers */
-.imdb-ott-badge--great .imdb-ott-badge__star { color: #f5c518; }
-.imdb-ott-badge--good  .imdb-ott-badge__star { color: #8fd400; }
-.imdb-ott-badge--poor  .imdb-ott-badge__star { color: #e87c3e; }
-
-.imdb-ott-badge__star {
-  font-size: 10px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.imdb-ott-badge__rating {
-  font-size: 11px;
-  letter-spacing: 0.01em;
+  opacity: 0;
+  animation: imdb-badge-in 0.2s ease forwards !important;
 }
 
 @keyframes imdb-badge-in {
   to { opacity: 1; }
 }
 
-/* ── Anchor the badge inside each card ──────────────────────
-   Only set position:relative. Do NOT touch overflow — Netflix
-   uses overflow:hidden intentionally for its hover animations.
-   ----------------------------------------------------------- */
-.title-card-container,
-.ptrack-content,
-.boxart-container,
-.boxart-image-in-padded-container,
-.boxart-size-16x9,
-.slider-item,
-.title-card,
-.jawbone-title-card {
-  position: relative !important;
+/* Star colour by rating tier */
+.imdb-ott-badge--great .imdb-ott-badge__star { color: #f5c518 !important; }
+.imdb-ott-badge--good  .imdb-ott-badge__star { color: #8fd400 !important; }
+.imdb-ott-badge--poor  .imdb-ott-badge__star { color: #ff8c42 !important; }
+
+.imdb-ott-badge__star {
+  font-size: 9px !important;
+  line-height: 1 !important;
+}
+
+.imdb-ott-badge__rating {
+  font-size: 11px !important;
+  letter-spacing: 0.01em !important;
 }
