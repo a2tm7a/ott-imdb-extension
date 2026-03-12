@@ -46,8 +46,11 @@ class BaseAdapter {
   // ── Core orchestration ───────────────────────────────────
 
   start() {
-    if (!this.isActive()) return;
-    console.log(`[IMDB OTT] ${this.platformKey} adapter started`);
+    if (!this.isActive()) {
+      console.log(`[IMDB OTT] ${this.platformKey} adapter skipped (not active on this URL).`);
+      return;
+    }
+    console.log(`[IMDB OTT] ${this.platformKey} adapter started on: ${location.href}`);
     this.scanExisting();
     this.observeDOM();
   }
@@ -56,32 +59,42 @@ class BaseAdapter {
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
+      console.log(`[IMDB OTT] ${this.platformKey} MutationObserver disconnected.`);
     }
   }
 
   scanExisting() {
     const cards = document.querySelectorAll(this.getCardSelector());
+    const unprocessed = [...cards].filter((c) => !this.processedCards.has(c)).length;
+    if (unprocessed > 0) {
+      console.log(`[IMDB OTT] scanExisting → found ${cards.length} cards (${unprocessed} new) on ${this.platformKey}`);
+    }
     cards.forEach((card) => this.processCard(card));
   }
 
   observeDOM() {
+    console.log(`[IMDB OTT] MutationObserver watching DOM for new ${this.platformKey} cards…`);
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
           // Check the node itself
           if (node.matches?.(this.getCardSelector())) {
+            console.debug(`[IMDB OTT] MutationObserver: matched node directly →`, node.className);
             this.processCard(node);
           }
           // Check descendants
-          node.querySelectorAll?.(this.getCardSelector()).forEach((card) =>
-            this.processCard(card)
-          );
+          const descendants = node.querySelectorAll?.(this.getCardSelector()) || [];
+          if (descendants.length) {
+            console.debug(`[IMDB OTT] MutationObserver: found ${descendants.length} card(s) inside added node`);
+          }
+          descendants.forEach((card) => this.processCard(card));
         }
       }
     });
 
     this.observer.observe(document.body, { childList: true, subtree: true });
+    console.log(`[IMDB OTT] MutationObserver attached to document.body.`);
   }
 
   processCard(cardElement) {
@@ -89,25 +102,47 @@ class BaseAdapter {
     this.processedCards.add(cardElement);
 
     const titleInfo = this.extractTitleFromCard(cardElement);
-    if (!titleInfo || !titleInfo.title) return;
+    if (!titleInfo || !titleInfo.title) {
+      console.debug('[IMDB OTT] Could not extract title from card:', cardElement.className || cardElement.tagName);
+      return;
+    }
 
+    console.debug(`[IMDB OTT] Processing card: "${titleInfo.title}"${titleInfo.year ? ` (${titleInfo.year})` : ''}`);
     this.fetchAndInject(cardElement, titleInfo);
   }
 
   async fetchAndInject(cardElement, { title, year }) {
     try {
       const data = await this.fetchRating(title, year);
-      if (!data || data.error || !data.imdbRating) return;
+      if (!data) {
+        console.warn(`[IMDB OTT] No response from service worker for "${title}"`);
+        return;
+      }
+      if (data.error === 'NO_API_KEY') {
+        console.error('[IMDB OTT] API key missing — open the extension popup to set one.');
+        return;
+      }
+      if (data.error === 'NOT_FOUND') {
+        console.debug(`[IMDB OTT] "${title}" not found on OMDb.`);
+        return;
+      }
+      if (!data.imdbRating) {
+        console.debug(`[IMDB OTT] "${title}" found but rating is unavailable.`);
+        return;
+      }
       this.injectBadge(cardElement, data);
     } catch (err) {
-      console.warn(`[IMDB OTT] Failed for "${title}":`, err);
+      console.warn(`[IMDB OTT] fetchAndInject failed for "${title}":`, err.message);
     }
   }
 
   fetchRating(title, year) {
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({ type: 'FETCH_RATING', title, year }, (response) => {
-        if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
+        if (chrome.runtime.lastError) {
+          console.error(`[IMDB OTT] sendMessage error for "${title}":`, chrome.runtime.lastError.message);
+          return reject(chrome.runtime.lastError);
+        }
         resolve(response);
       });
     });
@@ -118,15 +153,20 @@ class BaseAdapter {
     if (cardElement.querySelector('.imdb-ott-badge')) return;
 
     const container = this.getBadgeContainer(cardElement);
-    if (!container) return;
+    if (!container) {
+      console.warn(`[IMDB OTT] No badge container found for card:`, cardElement.className);
+      return;
+    }
 
     // Ensure the container can anchor absolutely-positioned children
     const containerStyle = window.getComputedStyle(container);
     if (containerStyle.position === 'static') {
+      console.debug(`[IMDB OTT] Setting position:relative on container:`, container.className);
       container.style.position = 'relative';
     }
     // Un-clip so the badge isn't hidden
     if (containerStyle.overflow === 'hidden') {
+      console.debug(`[IMDB OTT] Overriding overflow:hidden on container:`, container.className);
       container.style.overflow = 'visible';
     }
 
