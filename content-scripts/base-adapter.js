@@ -158,16 +158,13 @@ class BaseAdapter {
       return;
     }
 
-    // Ensure the container can anchor absolutely-positioned children
+    // Ensure the container can anchor the absolutely-positioned badge.
+    // We only set position:relative — we do NOT touch overflow:hidden,
+    // as Netflix relies on it for its hover expand animations.
     const containerStyle = window.getComputedStyle(container);
     if (containerStyle.position === 'static') {
       console.debug(`[IMDB OTT] Setting position:relative on container:`, container.className);
       container.style.position = 'relative';
-    }
-    // Un-clip so the badge isn't hidden
-    if (containerStyle.overflow === 'hidden') {
-      console.debug(`[IMDB OTT] Overriding overflow:hidden on container:`, container.className);
-      container.style.overflow = 'visible';
     }
 
     const badge = document.createElement('div');
@@ -184,13 +181,7 @@ class BaseAdapter {
     badge.classList.add(colorClass);
     badge.innerHTML = `<span class="imdb-ott-badge__star">★</span><span class="imdb-ott-badge__rating">${data.imdbRating}</span>`;
 
-    badge.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (data.imdbID) {
-        window.open(`https://www.imdb.com/title/${data.imdbID}/`, '_blank');
-      }
-    });
+    // No click handler — badge is purely informational (pointer-events:none in CSS)
 
     container.appendChild(badge);
     console.log(`[IMDB OTT] Badge injected: ${data.title} → ${data.imdbRating}`);
