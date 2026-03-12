@@ -1,0 +1,282 @@
+/* ============================================================
+   Extension Popup Styles
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0f0f13;
+  color: #fff;
+  width: 300px;
+  min-height: 100px;
+}
+
+.popup {
+  padding: 0 0 10px;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+
+.popup__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  background: linear-gradient(135deg, #1a1a24 0%, #12121a 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.popup__logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+
+.popup__star {
+  color: #f5c518;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.popup__brand { color: #fff; }
+.popup__brand-ott {
+  background: linear-gradient(90deg, #f5c518, #e87c3e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.popup__version {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  font-weight: 500;
+}
+
+/* ── Section ─────────────────────────────────────────── */
+
+.popup__section {
+  padding: 14px 16px;
+}
+
+.popup__section--actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+}
+
+.popup__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 10px;
+}
+
+.popup__link {
+  color: #f5c518;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: opacity 0.15s;
+}
+.popup__link:hover { opacity: 0.75; }
+
+/* ── Input row ───────────────────────────────────────── */
+
+.popup__input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.popup__input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 7px;
+  color: #fff;
+  font-family: 'Inter', monospace;
+  font-size: 13px;
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.popup__input::placeholder { color: rgba(255,255,255,0.25); }
+.popup__input:focus { border-color: #f5c518; }
+
+.popup__icon-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 7px;
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+  padding: 0 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.popup__icon-btn:hover { background: rgba(255,255,255,0.12); }
+
+.popup__api-status {
+  font-size: 11px;
+  margin-top: 6px;
+  min-height: 14px;
+  color: rgba(255,255,255,0.4);
+}
+.popup__api-status--ok    { color: #8fd400; }
+.popup__api-status--error { color: #e87c3e; }
+
+/* ── Divider ─────────────────────────────────────────── */
+
+.popup__divider {
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 0 16px;
+}
+
+/* ── Platform toggles ────────────────────────────────── */
+
+.popup__platform {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.popup__platform:last-child { border-bottom: none; }
+.popup__platform--coming-soon { opacity: 0.45; }
+
+.popup__platform-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popup__platform-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.popup__platform-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.popup__platform-badge {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.4);
+}
+.popup__platform-badge--live {
+  background: rgba(143, 212, 0, 0.18);
+  color: #8fd400;
+}
+
+/* ── Toggle switch ───────────────────────────────────── */
+
+.popup__toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.popup__toggle input { opacity: 0; width: 0; height: 0; }
+
+.popup__toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.12);
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+
+.popup__toggle-slider::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.popup__toggle input:checked + .popup__toggle-slider {
+  background: #f5c518;
+}
+
+.popup__toggle input:checked + .popup__toggle-slider::before {
+  transform: translateX(16px);
+}
+
+.popup__toggle--disabled {
+  cursor: not-allowed;
+}
+
+/* ── Save button ─────────────────────────────────────── */
+
+.popup__save-btn {
+  background: linear-gradient(135deg, #f5c518, #e8a918);
+  border: none;
+  border-radius: 7px;
+  color: #0f0f13;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+.popup__save-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.popup__save-btn:active { transform: translateY(0); opacity: 1; }
+
+.popup__save-status {
+  font-size: 12px;
+  font-weight: 500;
+  color: #8fd400;
+  min-height: 16px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.popup__save-status--visible { opacity: 1; }
+
+/* ── Legend ──────────────────────────────────────────── */
+
+.popup__legend {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 16px 4px;
+  gap: 4px;
+}
+
+.popup__legend-item {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.popup__legend-item--great { color: #f5c518; }
+.popup__legend-item--good  { color: #8fd400; }
+.popup__legend-item--poor  { color: #e87c3e; }
