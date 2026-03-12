@@ -1,75 +1,53 @@
 // ============================================================
 // Netflix Adapter – extends BaseAdapter for Netflix's DOM.
 //
-// Netflix's React SPA changes its DOM frequently. We use a
-// broad set of selectors and multiple title-extraction methods
-// so the adapter stays resilient across UI changes.
+// Strategy: Netflix's class names change constantly. Instead
+// of targeting classes, we detect title cards by their <a>
+// links (href contains /watch/ or /title/) and extract titles
+// from aria-label attributes — both are stable across UI changes.
 // ============================================================
 
 class NetflixAdapter extends BaseAdapter {
   constructor() {
     super('netflix');
-    this._retryTimer = null;
   }
 
   isActive() {
     return location.hostname.includes('netflix.com');
   }
 
-  // Netflix renders thumbnail cards in rows; we target the
-  // outermost focusable/interactive wrapper for each title.
-  // These selectors cover browse, search, and billboard areas.
+  // Target the <a> link element inside each card.
+  // Netflix always wraps each title in an anchor with /watch/ or /title/ href.
   getCardSelector() {
     return [
-      // Current Netflix UI (2024–2025)
-      '.title-card-container',
-      '.slider-item',
-      '.ptrack-content',
-      // Older / alternate UI
-      '.title-card',
-      '.jawbone-title-card',
-      '[data-uia="title-card"]',
-      // Fallback: any list item inside a lolomo row
-      '.lolomo .slick-slide',
-      '.lolomo li',
-      // Search results
-      '.title-list-card',
+      'a[href*="/watch/"]',
+      'a[href*="/title/"]',
     ].join(', ');
   }
 
+  // The badge container is the <a> element itself (it already
+  // has position:relative in Netflix's own CSS for its overlays).
   getBadgeContainer(cardElement) {
-    // We need a container that has position:relative in our CSS
-    // and is not clipped. The image element's parent is usually best.
-    return (
-      cardElement.querySelector('.boxart-container') ||
-      cardElement.querySelector('.boxart-image-in-padded-container') ||
-      cardElement.querySelector('.boxart-size-16x9') ||
-      cardElement.querySelector('.fallback-text-container') ||
-      cardElement.querySelector('img')?.closest('div') ||
-      cardElement
-    );
+    return cardElement;
   }
 
   extractTitleFromCard(cardElement) {
-    // Priority-ordered: aria-label > fallback-text > img alt > any visible text
+    // aria-label on the <a> is the most reliable signal.
+    // Netflix sets it to the show/movie title.
     const candidates = [
-      // Most reliable — Netflix sets aria-label on focusable elements
       cardElement.getAttribute('aria-label'),
-      cardElement.querySelector('a[aria-label]')?.getAttribute('aria-label'),
       cardElement.querySelector('[aria-label]')?.getAttribute('aria-label'),
-      // Visible text elements
-      cardElement.querySelector('.fallback-text')?.textContent,
-      cardElement.querySelector('.title-card-title-text')?.textContent,
-      cardElement.querySelector('.title')?.textContent,
-      // Image alt
-      cardElement.querySelector('img[alt]')?.getAttribute('alt'),
+      cardElement.querySelector('img')?.getAttribute('alt'),
+      cardElement.querySelector('img')?.getAttribute('src')?.match(/\/([^/]+)\.(jpg|webp)/)?.[1]?.replace(/-/g, ' '),
     ];
 
     for (const candidate of candidates) {
       const title = candidate?.trim();
       if (title && title.length > 1 && title.length < 150) {
         const cleaned = this.cleanTitle(title);
-        if (cleaned.length > 1) return { title: cleaned };
+        if (cleaned.length > 1) {
+          return { title: cleaned };
+        }
       }
     }
 
@@ -78,11 +56,8 @@ class NetflixAdapter extends BaseAdapter {
 
   cleanTitle(raw) {
     return raw
-      // Remove "Season 2", "Part 3", etc.
       .replace(/\s*[:\-–]\s*(season|part|volume|series|episode)\s*\d+.*/i, '')
-      // Remove trailing type descriptors
       .replace(/\s*(limited series|miniseries|documentary|film)$/i, '')
-      // Netflix sometimes appends " - Netflix" to aria-labels
       .replace(/\s*[-–]\s*Netflix\s*$/i, '')
       .trim();
   }
@@ -91,12 +66,11 @@ class NetflixAdapter extends BaseAdapter {
 // ── Bootstrap ──────────────────────────────────────────────
 
 (async function () {
-  // Wait for settings
   const settings = await new Promise((resolve) => {
     chrome.storage.sync.get(['enabledPlatforms', 'omdbApiKey'], resolve);
   });
 
-  const enabled = settings.enabledPlatforms?.netflix !== false; // default: on
+  const enabled = settings.enabledPlatforms?.netflix !== false;
   const hasKey = !!settings.omdbApiKey;
 
   if (!enabled) {
@@ -114,29 +88,24 @@ class NetflixAdapter extends BaseAdapter {
   const adapter = new NetflixAdapter();
   adapter.start();
 
-  // Retry scan a few times for slow-loading React renders
-  // (document_idle fires before Netflix's app fully renders cards)
+  // Retry scan a few times — Netflix renders cards progressively
   let retries = 0;
   const retryInterval = setInterval(() => {
     adapter.scanExisting();
     retries++;
     if (retries >= 5) clearInterval(retryInterval);
-  }, 2000); // scan every 2s for the first 10s
+  }, 2000);
 
-  // ── SPA navigation (pushState / replaceState) ─────────────
-  // MutationObserver on document.documentElement (not document itself)
-  // watches for URL changes triggered by React router.
+  // SPA navigation — watch for URL changes
   let lastUrl = location.href;
   const navObserver = new MutationObserver(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
       console.log('[IMDB OTT] Page navigated to:', lastUrl);
-      // Reset and re-scan after React renders the new page's content
       setTimeout(() => {
-        adapter.processedCards = new WeakSet(); // reset seen cards
+        adapter.processedCards = new WeakSet();
         adapter.scanExisting();
 
-        // Retry a few more times for the new page
         let navRetries = 0;
         const navRetryInterval = setInterval(() => {
           adapter.scanExisting();
