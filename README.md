@@ -8,16 +8,7 @@
 
 Browsing Netflix and can't decide what to watch? This extension **automatically overlays IMDB ratings as badges on every title card** — no more opening new tabs, no more guessing, no more disappointing 90-minute commitments.
 
-**Before → After:**
-
-```
-┌──────────────┐      ┌──────────────┐
-│              │      │  ★ 8.7       │
-│  [Thumbnail] │  →   │  [Thumbnail] │
-│              │      │              │
-│  Movie Title │      │  Movie Title │
-└──────────────┘      └──────────────┘
-```
+![IMDB ratings overlaid on Netflix thumbnails](screenshots/demo.png)
 
 Badges are color-coded at a glance:
 - **Gold** ★ — IMDB ≥ 8.0 (watch this!)
