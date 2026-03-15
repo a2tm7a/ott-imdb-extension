@@ -42,12 +42,7 @@
   box-shadow: none !important;
   text-decoration: none !important;
 
-  opacity: 0;
-  animation: imdb-badge-in 0.2s ease forwards !important;
-}
-
-@keyframes imdb-badge-in {
-  to { opacity: 1; }
+  opacity: 1 !important;
 }
 
 /* Star colour by rating tier */

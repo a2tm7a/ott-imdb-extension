@@ -32,6 +32,12 @@ class NetflixAdapter extends BaseAdapter {
   }
 
   extractTitleFromCard(cardElement) {
+    // Only process <a> elements that wrap an image (poster/thumbnail cards).
+    // Info-section links inside the hover popup (e.g. the title text link) also
+    // match our href selector but contain no <img>, so they would get a badge
+    // injected into the info bar at the wrong position.
+    if (!cardElement.querySelector('img')) return null;
+
     // aria-label on the <a> is the most reliable signal.
     // Netflix sets it to the show/movie title.
     const candidates = [
