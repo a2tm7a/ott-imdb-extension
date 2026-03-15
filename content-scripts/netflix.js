@@ -133,6 +133,16 @@ class NetflixAdapter extends BaseAdapter {
       childList: true,
     });
 
+    // React to settings changes (e.g. platform toggled off from popup)
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'SETTINGS_UPDATED' && message.enabledPlatforms?.netflix === false) {
+        console.log('[IMDB OTT] Netflix disabled via settings — stopping adapter and clearing badges.');
+        adapter.stop();
+        navObserver.disconnect();
+        if (navRetryInterval) clearInterval(navRetryInterval);
+      }
+    });
+
     console.log('[IMDB OTT] Netflix adapter ready.');
   } catch (err) {
     console.error('[IMDB OTT] Netflix adapter failed to initialise:', err.message);

@@ -61,6 +61,12 @@ class BaseAdapter {
       this.observer = null;
       console.log(`[IMDB OTT] ${this.platformKey} MutationObserver disconnected.`);
     }
+    this.clearAllBadges();
+  }
+
+  clearAllBadges() {
+    document.querySelectorAll('.imdb-ott-anchor').forEach((el) => el.remove());
+    console.log(`[IMDB OTT] ${this.platformKey} badges cleared.`);
   }
 
   scanExisting() {

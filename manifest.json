@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "Overlay IMDB ratings on Netflix, Prime Video, Hotstar and more.",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.netflix.com/*",
