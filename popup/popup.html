@@ -12,8 +12,14 @@
     <!-- Header -->
     <div class="popup__header">
       <div class="popup__logo">
-        <span class="popup__star">★</span>
-        <span class="popup__brand">IMDB <span class="popup__brand-ott">OTT</span></span>
+        <div class="popup__logo-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 1.5L12.39 7.26L18.66 7.64L14 11.69L15.56 17.85L10 14.5L4.44 17.85L6 11.69L1.34 7.64L7.61 7.26L10 1.5Z" fill="#f5c518"/>
+          </svg>
+        </div>
+        <div class="popup__logo-text">
+          <span class="popup__brand">IMDb</span><span class="popup__brand-ott"> for OTT</span>
+        </div>
       </div>
       <span class="popup__version">v1.0</span>
     </div>
@@ -33,7 +39,12 @@
           autocomplete="off"
           spellcheck="false"
         />
-        <button id="toggle-key-visibility" class="popup__icon-btn" title="Show/hide key">👁</button>
+        <button id="toggle-key-visibility" class="popup__icon-btn" title="Show/hide key">
+          <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
       </div>
       <div id="api-status" class="popup__api-status"></div>
     </div>
@@ -60,7 +71,7 @@
         <div class="popup__platform-info">
           <span class="popup__platform-dot" style="background:#00a8e0"></span>
           <span class="popup__platform-name">Prime Video</span>
-          <span class="popup__platform-badge">Coming soon</span>
+          <span class="popup__platform-badge">Soon</span>
         </div>
         <label class="popup__toggle popup__toggle--disabled">
           <input type="checkbox" id="toggle-prime" disabled />
@@ -72,7 +83,7 @@
         <div class="popup__platform-info">
           <span class="popup__platform-dot" style="background:#1f80e0"></span>
           <span class="popup__platform-name">Hotstar</span>
-          <span class="popup__platform-badge">Coming soon</span>
+          <span class="popup__platform-badge">Soon</span>
         </div>
         <label class="popup__toggle popup__toggle--disabled">
           <input type="checkbox" id="toggle-hotstar" disabled />
@@ -89,7 +100,7 @@
       <div id="save-status" class="popup__save-status"></div>
     </div>
 
-    <!-- Rate legend -->
+    <!-- Rating legend -->
     <div class="popup__legend">
       <span class="popup__legend-item popup__legend-item--great">★ ≥ 8.0 Great</span>
       <span class="popup__legend-item popup__legend-item--good">★ 6.5–8 Good</span>
