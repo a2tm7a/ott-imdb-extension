@@ -3,6 +3,14 @@
 // Extend this for Netflix, Prime Video, Hotstar, etc.
 // ============================================================
 
+const DEBUG = false;
+const log = (...args) => { if (DEBUG) console.log(...args); };
+const logDebug = (...args) => { if (DEBUG) console.debug(...args); };
+const logWarn = (...args) => { if (DEBUG) console.warn(...args); };
+
+const RATING_GREAT = 8.0;
+const RATING_GOOD = 6.5;
+
 class BaseAdapter {
   constructor(platformKey) {
     this.platformKey = platformKey;
@@ -47,10 +55,10 @@ class BaseAdapter {
 
   start() {
     if (!this.isActive()) {
-      console.log(`[IMDB OTT] ${this.platformKey} adapter skipped (not active on this URL).`);
+      log(`[IMDB OTT] ${this.platformKey} adapter skipped (not active on this URL).`);
       return;
     }
-    console.log(`[IMDB OTT] ${this.platformKey} adapter started on: ${location.href}`);
+    log(`[IMDB OTT] ${this.platformKey} adapter started on: ${location.href}`);
     this.scanExisting();
     this.observeDOM();
   }
@@ -59,40 +67,40 @@ class BaseAdapter {
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
-      console.log(`[IMDB OTT] ${this.platformKey} MutationObserver disconnected.`);
+      log(`[IMDB OTT] ${this.platformKey} MutationObserver disconnected.`);
     }
     this.clearAllBadges();
   }
 
   clearAllBadges() {
     document.querySelectorAll('.imdb-ott-anchor').forEach((el) => el.remove());
-    console.log(`[IMDB OTT] ${this.platformKey} badges cleared.`);
+    log(`[IMDB OTT] ${this.platformKey} badges cleared.`);
   }
 
   scanExisting() {
     const cards = document.querySelectorAll(this.getCardSelector());
     const unprocessed = [...cards].filter((c) => !this.processedCards.has(c)).length;
     if (unprocessed > 0) {
-      console.log(`[IMDB OTT] scanExisting → found ${cards.length} cards (${unprocessed} new) on ${this.platformKey}`);
+      log(`[IMDB OTT] scanExisting → found ${cards.length} cards (${unprocessed} new) on ${this.platformKey}`);
     }
     cards.forEach((card) => this.processCard(card));
   }
 
   observeDOM() {
-    console.log(`[IMDB OTT] MutationObserver watching DOM for new ${this.platformKey} cards…`);
+    log(`[IMDB OTT] MutationObserver watching DOM for new ${this.platformKey} cards…`);
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
           // Check the node itself
           if (node.matches?.(this.getCardSelector())) {
-            console.debug(`[IMDB OTT] MutationObserver: matched node directly →`, node.className);
+            logDebug(`[IMDB OTT] MutationObserver: matched node directly →`, node.className);
             this.processCard(node);
           }
           // Check descendants
           const descendants = node.querySelectorAll?.(this.getCardSelector()) || [];
           if (descendants.length) {
-            console.debug(`[IMDB OTT] MutationObserver: found ${descendants.length} card(s) inside added node`);
+            logDebug(`[IMDB OTT] MutationObserver: found ${descendants.length} card(s) inside added node`);
           }
           descendants.forEach((card) => this.processCard(card));
         }
@@ -100,7 +108,7 @@ class BaseAdapter {
     });
 
     this.observer.observe(document.body, { childList: true, subtree: true });
-    console.log(`[IMDB OTT] MutationObserver attached to document.body.`);
+    log(`[IMDB OTT] MutationObserver attached to document.body.`);
   }
 
   processCard(cardElement) {
@@ -109,11 +117,11 @@ class BaseAdapter {
 
     const titleInfo = this.extractTitleFromCard(cardElement);
     if (!titleInfo || !titleInfo.title) {
-      console.debug('[IMDB OTT] Could not extract title from card:', cardElement.className || cardElement.tagName);
+      logDebug('[IMDB OTT] Could not extract title from card:', cardElement.className || cardElement.tagName);
       return;
     }
 
-    console.debug(`[IMDB OTT] Processing card: "${titleInfo.title}"${titleInfo.year ? ` (${titleInfo.year})` : ''}`);
+    logDebug(`[IMDB OTT] Processing card: "${titleInfo.title}"${titleInfo.year ? ` (${titleInfo.year})` : ''}`);
     this.fetchAndInject(cardElement, titleInfo);
   }
 
@@ -121,7 +129,7 @@ class BaseAdapter {
     try {
       const data = await this.fetchRating(title, year);
       if (!data) {
-        console.warn(`[IMDB OTT] No response from service worker for "${title}"`);
+        logWarn(`[IMDB OTT] No response from service worker for "${title}"`);
         return;
       }
       if (data.error === 'NO_API_KEY') {
@@ -129,16 +137,16 @@ class BaseAdapter {
         return;
       }
       if (data.error === 'NOT_FOUND') {
-        console.debug(`[IMDB OTT] "${title}" not found on OMDb.`);
+        logDebug(`[IMDB OTT] "${title}" not found on OMDb.`);
         return;
       }
       if (!data.imdbRating) {
-        console.debug(`[IMDB OTT] "${title}" found but rating is unavailable.`);
+        logDebug(`[IMDB OTT] "${title}" found but rating is unavailable.`);
         return;
       }
       this.injectBadge(cardElement, data);
     } catch (err) {
-      console.warn(`[IMDB OTT] fetchAndInject failed for "${title}":`, err.message);
+      logWarn(`[IMDB OTT] fetchAndInject failed for "${title}":`, err.message);
     }
   }
 
@@ -166,8 +174,8 @@ class BaseAdapter {
 
     const rating = parseFloat(data.imdbRating);
     const colorClass =
-      rating >= 8 ? 'imdb-ott-badge--great'
-      : rating >= 6.5 ? 'imdb-ott-badge--good'
+      rating >= RATING_GREAT ? 'imdb-ott-badge--great'
+      : rating >= RATING_GOOD ? 'imdb-ott-badge--good'
       : 'imdb-ott-badge--poor';
 
     const badge = document.createElement('div');
@@ -205,6 +213,6 @@ class BaseAdapter {
     container.style.position = container.style.position || 'relative';
     container.insertBefore(anchor, container.firstChild);
 
-    console.log(`[IMDB OTT] Badge injected: ${data.title} → ${data.imdbRating}`);
+    log(`[IMDB OTT] Badge injected: ${data.title} → ${data.imdbRating}`);
   }
 }

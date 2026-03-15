@@ -63,6 +63,14 @@ class NetflixAdapter extends BaseAdapter {
   }
 }
 
+// ── Constants ──────────────────────────────────────────────
+
+const INITIAL_SCAN_RETRIES = 5;
+const INITIAL_SCAN_INTERVAL_MS = 2000;
+const NAV_SCAN_RETRIES = 4;
+const NAV_SCAN_INTERVAL_MS = 1500;
+const NAV_SCAN_DELAY_MS = 1500;
+
 // ── Bootstrap ──────────────────────────────────────────────
 
 (async function () {
@@ -100,8 +108,8 @@ class NetflixAdapter extends BaseAdapter {
     const retryInterval = setInterval(() => {
       adapter.scanExisting();
       retries++;
-      if (retries >= 5) clearInterval(retryInterval);
-    }, 2000);
+      if (retries >= INITIAL_SCAN_RETRIES) clearInterval(retryInterval);
+    }, INITIAL_SCAN_INTERVAL_MS);
 
     // SPA navigation — watch for URL changes
     let lastUrl = location.href;
@@ -119,12 +127,12 @@ class NetflixAdapter extends BaseAdapter {
           navRetryInterval = setInterval(() => {
             adapter.scanExisting();
             navRetries++;
-            if (navRetries >= 4) {
+            if (navRetries >= NAV_SCAN_RETRIES) {
               clearInterval(navRetryInterval);
               navRetryInterval = null;
             }
-          }, 1500);
-        }, 1500);
+          }, NAV_SCAN_INTERVAL_MS);
+        }, NAV_SCAN_DELAY_MS);
       }
     });
 

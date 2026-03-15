@@ -4,11 +4,19 @@
 // ============================================================
 
 const OMDB_BASE = 'https://www.omdbapi.com/';
+const DEBUG = false;
+const MAX_CACHE_SIZE = 500;
+const FETCH_TIMEOUT_MS = 8000;
+const MAX_RETRIES = 3;
 
 // In-memory cache (lives as long as the service worker is alive)
 const memCache = new Map();
 
-console.log('[IMDB OTT SW] Service worker started.');
+const log = (...args) => { if (DEBUG) console.log(...args); };
+const logDebug = (...args) => { if (DEBUG) console.debug(...args); };
+const logWarn = (...args) => { if (DEBUG) console.warn(...args); };
+
+log('[IMDB OTT SW] Service worker started.');
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -20,23 +28,33 @@ async function getApiKey() {
   });
 }
 
+function setCacheEntry(key, value) {
+  // Evict oldest entry when cache is full (FIFO)
+  if (memCache.size >= MAX_CACHE_SIZE) {
+    const oldestKey = memCache.keys().next().value;
+    memCache.delete(oldestKey);
+    logDebug(`[IMDB OTT SW] Cache full — evicted oldest entry.`);
+  }
+  memCache.set(key, value);
+}
+
 // ── Core fetch ─────────────────────────────────────────────
 
 async function fetchRatingFromOMDb(title, year) {
   const apiKey = await getApiKey();
   if (!apiKey) {
-    console.warn('[IMDB OTT SW] No API key configured. Set one via the extension popup.');
+    logWarn('[IMDB OTT SW] No API key configured. Set one via the extension popup.');
     return { error: 'NO_API_KEY' };
   }
 
   const cacheKey = `${title.toLowerCase()}|${year || ''}`;
 
   if (memCache.has(cacheKey)) {
-    console.debug(`[IMDB OTT SW] Cache HIT → "${title}"`);
+    logDebug(`[IMDB OTT SW] Cache HIT → "${title}"`);
     return memCache.get(cacheKey);
   }
 
-  console.log(`[IMDB OTT SW] Fetching rating for: "${title}"${year ? ` (${year})` : ''}`);
+  log(`[IMDB OTT SW] Fetching rating for: "${title}"${year ? ` (${year})` : ''}`);
 
   const params = new URLSearchParams({ apikey: apiKey, t: title, type: 'movie' });
   if (year) params.set('y', year);
@@ -45,15 +63,15 @@ async function fetchRatingFromOMDb(title, year) {
 
   // If no movie match, try series
   if (!data || data.Response === 'False') {
-    console.debug(`[IMDB OTT SW] No movie match for "${title}", retrying as series…`);
+    logDebug(`[IMDB OTT SW] No movie match for "${title}", retrying as series…`);
     params.set('type', 'series');
     data = await queryOMDb(params);
   }
 
   if (!data || data.Response === 'False') {
-    console.warn(`[IMDB OTT SW] Not found on OMDb: "${title}"`);
+    logWarn(`[IMDB OTT SW] Not found on OMDb: "${title}"`);
     const result = { error: 'NOT_FOUND', title };
-    memCache.set(cacheKey, result);
+    setCacheEntry(cacheKey, result);
     return result;
   }
 
@@ -66,22 +84,19 @@ async function fetchRatingFromOMDb(title, year) {
   };
 
   if (!result.imdbRating) {
-    console.warn(`[IMDB OTT SW] Found "${data.Title}" but rating is N/A — skipping badge.`);
+    logWarn(`[IMDB OTT SW] Found "${data.Title}" but rating is N/A — skipping badge.`);
   } else {
-    console.log(`[IMDB OTT SW] ✓ "${data.Title}" → ⭐ ${result.imdbRating} (${data.Type}, ${data.Year}) [${data.imdbID}]`);
+    log(`[IMDB OTT SW] ✓ "${data.Title}" → ⭐ ${result.imdbRating} (${data.Type}, ${data.Year}) [${data.imdbID}]`);
   }
 
-  memCache.set(cacheKey, result);
-  console.debug(`[IMDB OTT SW] Cache size: ${memCache.size} entries`);
+  setCacheEntry(cacheKey, result);
+  logDebug(`[IMDB OTT SW] Cache size: ${memCache.size} entries`);
   return result;
 }
 
-const FETCH_TIMEOUT_MS = 8000;
-const MAX_RETRIES = 3;
-
 async function queryOMDb(params) {
   const url = `${OMDB_BASE}?${params.toString()}`;
-  console.debug(`[IMDB OTT SW] GET ${url.replace(/apikey=[^&]+/, 'apikey=***')}`);
+  logDebug(`[IMDB OTT SW] GET ${url.replace(/apikey=[^&]+/, 'apikey=***')}`);
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     const controller = new AbortController();
@@ -95,7 +110,7 @@ async function queryOMDb(params) {
       }
       const json = await resp.json();
       if (json.Error) {
-        console.debug(`[IMDB OTT SW] OMDb response error: "${json.Error}"`);
+        logDebug(`[IMDB OTT SW] OMDb response error: "${json.Error}"`);
       }
       return json;
     } catch (e) {
@@ -120,7 +135,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabInfo = sender.tab ? `tab ${sender.tab.id}` : 'unknown tab';
 
   if (message.type === 'FETCH_RATING') {
-    console.debug(`[IMDB OTT SW] Message received: FETCH_RATING "${message.title}" from ${tabInfo}`);
+    logDebug(`[IMDB OTT SW] Message received: FETCH_RATING "${message.title}" from ${tabInfo}`);
     fetchRatingFromOMDb(message.title, message.year)
       .then(sendResponse)
       .catch((err) => {
@@ -131,7 +146,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'SAVE_SETTINGS') {
-    console.log('[IMDB OTT SW] Saving settings to chrome.storage.sync…', {
+    log('[IMDB OTT SW] Saving settings to chrome.storage.sync…', {
       hasApiKey: !!message.settings.omdbApiKey,
       platforms: message.settings.enabledPlatforms,
     });
@@ -141,7 +156,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, error: chrome.runtime.lastError.message });
         return;
       }
-      console.log('[IMDB OTT SW] Settings saved.');
+      log('[IMDB OTT SW] Settings saved.');
       sendResponse({ ok: true });
     });
     return true;
