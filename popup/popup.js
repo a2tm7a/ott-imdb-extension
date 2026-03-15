@@ -42,6 +42,10 @@ $('save-btn').addEventListener('click', () => {
   const settings = { omdbApiKey: apiKey, enabledPlatforms };
 
   chrome.runtime.sendMessage({ type: 'SAVE_SETTINGS', settings }, () => {
+    if (chrome.runtime.lastError) {
+      setApiStatus('⚠ Failed to save settings', 'error');
+      return;
+    }
     setApiStatus('✓ API key saved', 'ok');
     showSaveConfirmation();
   });

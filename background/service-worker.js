@@ -118,6 +118,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       platforms: message.settings.enabledPlatforms,
     });
     chrome.storage.sync.set(message.settings, () => {
+      if (chrome.runtime.lastError) {
+        console.error('[IMDB OTT SW] Failed to save settings:', chrome.runtime.lastError.message);
+        sendResponse({ ok: false, error: chrome.runtime.lastError.message });
+        return;
+      }
       console.log('[IMDB OTT SW] Settings saved.');
       sendResponse({ ok: true });
     });

@@ -66,60 +66,75 @@ class NetflixAdapter extends BaseAdapter {
 // ── Bootstrap ──────────────────────────────────────────────
 
 (async function () {
-  const settings = await new Promise((resolve) => {
-    chrome.storage.sync.get(['enabledPlatforms', 'omdbApiKey'], resolve);
-  });
+  try {
+    const settings = await new Promise((resolve, reject) => {
+      chrome.storage.sync.get(['enabledPlatforms', 'omdbApiKey'], (result) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(result);
+        }
+      });
+    });
 
-  const enabled = settings.enabledPlatforms?.netflix !== false;
-  const hasKey = !!settings.omdbApiKey;
+    const enabled = settings.enabledPlatforms?.netflix !== false;
+    const hasKey = !!settings.omdbApiKey;
 
-  if (!enabled) {
-    console.log('[IMDB OTT] Netflix disabled by user settings.');
-    return;
-  }
-
-  if (!hasKey) {
-    console.warn('[IMDB OTT] No OMDb API key set. Open the extension popup to add one.');
-    return;
-  }
-
-  console.log('[IMDB OTT] Netflix adapter initialising…');
-
-  const adapter = new NetflixAdapter();
-  adapter.start();
-
-  // Retry scan a few times — Netflix renders cards progressively
-  let retries = 0;
-  const retryInterval = setInterval(() => {
-    adapter.scanExisting();
-    retries++;
-    if (retries >= 5) clearInterval(retryInterval);
-  }, 2000);
-
-  // SPA navigation — watch for URL changes
-  let lastUrl = location.href;
-  const navObserver = new MutationObserver(() => {
-    if (location.href !== lastUrl) {
-      lastUrl = location.href;
-      console.log('[IMDB OTT] Page navigated to:', lastUrl);
-      setTimeout(() => {
-        adapter.processedCards = new WeakSet();
-        adapter.scanExisting();
-
-        let navRetries = 0;
-        const navRetryInterval = setInterval(() => {
-          adapter.scanExisting();
-          navRetries++;
-          if (navRetries >= 4) clearInterval(navRetryInterval);
-        }, 1500);
-      }, 1500);
+    if (!enabled) {
+      console.log('[IMDB OTT] Netflix disabled by user settings.');
+      return;
     }
-  });
 
-  navObserver.observe(document.documentElement, {
-    subtree: true,
-    childList: true,
-  });
+    if (!hasKey) {
+      console.warn('[IMDB OTT] No OMDb API key set. Open the extension popup to add one.');
+      return;
+    }
 
-  console.log('[IMDB OTT] Netflix adapter ready.');
+    console.log('[IMDB OTT] Netflix adapter initialising…');
+
+    const adapter = new NetflixAdapter();
+    adapter.start();
+
+    // Retry scan a few times — Netflix renders cards progressively
+    let retries = 0;
+    const retryInterval = setInterval(() => {
+      adapter.scanExisting();
+      retries++;
+      if (retries >= 5) clearInterval(retryInterval);
+    }, 2000);
+
+    // SPA navigation — watch for URL changes
+    let lastUrl = location.href;
+    let navRetryInterval = null;
+    const navObserver = new MutationObserver(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        console.log('[IMDB OTT] Page navigated to:', lastUrl);
+        setTimeout(() => {
+          adapter.processedCards = new WeakSet();
+          adapter.scanExisting();
+
+          let navRetries = 0;
+          if (navRetryInterval) clearInterval(navRetryInterval);
+          navRetryInterval = setInterval(() => {
+            adapter.scanExisting();
+            navRetries++;
+            if (navRetries >= 4) {
+              clearInterval(navRetryInterval);
+              navRetryInterval = null;
+            }
+          }, 1500);
+        }, 1500);
+      }
+    });
+
+    navObserver.observe(document.documentElement, {
+      subtree: true,
+      childList: true,
+    });
+
+    console.log('[IMDB OTT] Netflix adapter ready.');
+  } catch (err) {
+    console.error('[IMDB OTT] Netflix adapter failed to initialise:', err.message);
+  }
 })();
