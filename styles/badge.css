@@ -51,9 +51,9 @@
 }
 
 /* Star colour by rating tier */
-.imdb-ott-badge--great .imdb-ott-badge__star { color: #f5c518 !important; }
-.imdb-ott-badge--good  .imdb-ott-badge__star { color: #8fd400 !important; }
-.imdb-ott-badge--poor  .imdb-ott-badge__star { color: #ff8c42 !important; }
+.imdb-ott-badge--great .imdb-ott-badge__star { color: #4caf50 !important; }
+.imdb-ott-badge--good  .imdb-ott-badge__star { color: #ff9800 !important; }
+.imdb-ott-badge--poor  .imdb-ott-badge__star { color: #f44336 !important; }
 
 .imdb-ott-badge__star {
   font-size: 9px !important;

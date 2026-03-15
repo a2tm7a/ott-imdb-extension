@@ -33,6 +33,12 @@ $('save-btn').addEventListener('click', () => {
     return;
   }
 
+  // OMDb API keys are alphanumeric and at least 8 characters
+  if (!/^[a-zA-Z0-9]{8,}$/.test(apiKey)) {
+    setApiStatus('⚠ API key format is invalid', 'error');
+    return;
+  }
+
   const enabledPlatforms = {
     netflix: $('toggle-netflix').checked,
     prime: false,
@@ -42,8 +48,22 @@ $('save-btn').addEventListener('click', () => {
   const settings = { omdbApiKey: apiKey, enabledPlatforms };
 
   chrome.runtime.sendMessage({ type: 'SAVE_SETTINGS', settings }, () => {
+    if (chrome.runtime.lastError) {
+      setApiStatus('⚠ Failed to save settings', 'error');
+      return;
+    }
     setApiStatus('✓ API key saved', 'ok');
     showSaveConfirmation();
+
+    // Notify active tabs to clear badges if a platform was disabled
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'SETTINGS_UPDATED',
+          enabledPlatforms,
+        });
+      }
+    });
   });
 });
 

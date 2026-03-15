@@ -4,13 +4,16 @@
   "version": "1.0.0",
   "description": "Overlay IMDB ratings on Netflix, Prime Video, Hotstar and more.",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.netflix.com/*",
-    "*://*.primevideo.com/*",
-    "*://*.hotstar.com/*"
+    "*://www.omdbapi.com/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://www.omdbapi.com;"
+  },
   "background": {
     "service_worker": "background/service-worker.js"
   },
