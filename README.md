@@ -11,9 +11,12 @@ Browsing Netflix and can't decide what to watch? This extension **automatically 
 ![IMDB ratings overlaid on Netflix thumbnails](screenshots/demo.png)
 
 Badges are color-coded at a glance:
-- **Gold** ★ — IMDB ≥ 8.0 (watch this!)
-- **Green** ★ — IMDB 6.5–8.0 (solid pick)
-- **Amber** ★ — IMDB < 6.5 (proceed with caution)
+
+| Tier | Rating | Color |
+|------|--------|-------|
+| **Great** | ≥ 8.0 | 🟢 Green `#4caf50` |
+| **Good** | ≥ 6.5 | 🟠 Orange `#ff9800` |
+| **Poor** | < 6.5 | 🔴 Red `#f44336` |
 
 ---
 
