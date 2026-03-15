@@ -166,7 +166,19 @@ class BaseAdapter {
 
     const badge = document.createElement('div');
     badge.className = `imdb-ott-badge ${colorClass}`;
-    badge.innerHTML = `<span class="imdb-ott-badge__star">★</span><span class="imdb-ott-badge__rating">${data.imdbRating}</span>`;
+    badge.setAttribute('role', 'img');
+    badge.setAttribute('aria-label', `IMDB rating: ${data.imdbRating}`);
+
+    const star = document.createElement('span');
+    star.className = 'imdb-ott-badge__star';
+    star.textContent = '★';
+
+    const ratingSpan = document.createElement('span');
+    ratingSpan.className = 'imdb-ott-badge__rating';
+    ratingSpan.textContent = data.imdbRating;
+
+    badge.appendChild(star);
+    badge.appendChild(ratingSpan);
 
     // Wrap badge in a zero-size absolutely-positioned anchor so we never
     // mutate any inline styles on Netflix's own elements.
