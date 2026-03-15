@@ -76,24 +76,42 @@ async function fetchRatingFromOMDb(title, year) {
   return result;
 }
 
+const FETCH_TIMEOUT_MS = 8000;
+const MAX_RETRIES = 3;
+
 async function queryOMDb(params) {
   const url = `${OMDB_BASE}?${params.toString()}`;
   console.debug(`[IMDB OTT SW] GET ${url.replace(/apikey=[^&]+/, 'apikey=***')}`);
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) {
-      console.error(`[IMDB OTT SW] OMDb HTTP error: ${resp.status} ${resp.statusText}`);
-      return null;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const resp = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!resp.ok) {
+        console.error(`[IMDB OTT SW] OMDb HTTP error: ${resp.status} ${resp.statusText}`);
+        return null;
+      }
+      const json = await resp.json();
+      if (json.Error) {
+        console.debug(`[IMDB OTT SW] OMDb response error: "${json.Error}"`);
+      }
+      return json;
+    } catch (e) {
+      clearTimeout(timeoutId);
+      const isTimeout = e.name === 'AbortError';
+      const label = isTimeout ? 'Timeout' : 'Network error';
+      if (attempt < MAX_RETRIES) {
+        const delay = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+        console.warn(`[IMDB OTT SW] ${label} on attempt ${attempt}/${MAX_RETRIES}, retrying in ${delay}ms…`);
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        console.error(`[IMDB OTT SW] ${label} after ${MAX_RETRIES} attempts:`, e.message);
+      }
     }
-    const json = await resp.json();
-    if (json.Error) {
-      console.debug(`[IMDB OTT SW] OMDb response error: "${json.Error}"`);
-    }
-    return json;
-  } catch (e) {
-    console.error('[IMDB OTT SW] Network error reaching OMDb:', e.message);
-    return null;
   }
+  return null;
 }
 
 // ── Message listener ───────────────────────────────────────
