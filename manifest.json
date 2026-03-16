@@ -9,6 +9,7 @@
   ],
   "host_permissions": [
     "*://*.netflix.com/*",
+    "*://*.hotstar.com/*",
     "*://www.omdbapi.com/*"
   ],
   "content_security_policy": {
@@ -21,6 +22,12 @@
     {
       "matches": ["*://*.netflix.com/*"],
       "js": ["content-scripts/base-adapter.js", "content-scripts/netflix.js"],
+      "css": ["styles/badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.hotstar.com/*"],
+      "js": ["content-scripts/base-adapter.js", "content-scripts/hotstar.js"],
       "css": ["styles/badge.css"],
       "run_at": "document_idle"
     }
