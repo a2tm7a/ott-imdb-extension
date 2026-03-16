@@ -11,6 +11,7 @@
     "*://*.netflix.com/*",
     "*://*.primevideo.com/*",
     "*://*.amazon.com/*",
+    "*://*.hotstar.com/*",
     "*://www.omdbapi.com/*"
   ],
   "content_security_policy": {
@@ -31,7 +32,13 @@
       "js": ["content-scripts/base-adapter.js", "content-scripts/prime.js"],
       "css": ["styles/badge.css"],
       "run_at": "document_idle"
-    }
+    },
+    {
+      "matches": ["*://*.hotstar.com/*"],
+      "js": ["content-scripts/base-adapter.js", "content-scripts/hotstar.js"],
+      "css": ["styles/badge.css"],
+      "run_at": "document_idle"
+    },
   ],
   "action": {
     "default_popup": "popup/popup.html",
@@ -39,7 +46,24 @@
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
-    }
+    },
+    "theme_icons": [
+      {
+        "light": "icons/icon16_light.png",
+        "dark": "icons/icon16_dark.png",
+        "size": 16
+      },
+      {
+        "light": "icons/icon48_light.png",
+        "dark": "icons/icon48_dark.png",
+        "size": 48
+      },
+      {
+        "light": "icons/icon128_light.png",
+        "dark": "icons/icon128_dark.png",
+        "size": 128
+      }
+    ]
   },
   "icons": {
     "16": "icons/icon16.png",

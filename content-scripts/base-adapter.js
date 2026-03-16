@@ -113,14 +113,14 @@ class BaseAdapter {
 
   processCard(cardElement) {
     if (this.processedCards.has(cardElement)) return;
-    this.processedCards.add(cardElement);
 
     const titleInfo = this.extractTitleFromCard(cardElement);
     if (!titleInfo || !titleInfo.title) {
       logDebug('[IMDB OTT] Could not extract title from card:', cardElement.className || cardElement.tagName);
-      return;
+      return; // Don't mark as processed — retry on next scanExisting pass
     }
 
+    this.processedCards.add(cardElement);
     logDebug(`[IMDB OTT] Processing card: "${titleInfo.title}"${titleInfo.year ? ` (${titleInfo.year})` : ''}`);
     this.fetchAndInject(cardElement, titleInfo);
   }
@@ -210,7 +210,10 @@ class BaseAdapter {
 
     // Insert anchor as first child so it sits behind Netflix's own overlays
     // (TOP 10 badge etc.) which come later in the DOM.
-    container.style.position = container.style.position || 'relative';
+    // Use getComputedStyle so we catch position set via CSS class, not just inline style.
+    if (window.getComputedStyle(container).position === 'static') {
+      container.style.position = 'relative';
+    }
     container.insertBefore(anchor, container.firstChild);
 
     log(`[IMDB OTT] Badge injected: ${data.title} → ${data.imdbRating}`);

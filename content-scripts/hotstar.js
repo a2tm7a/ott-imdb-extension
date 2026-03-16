@@ -1,65 +1,43 @@
 // ============================================================
-// Netflix Adapter – extends BaseAdapter for Netflix's DOM.
+// Hotstar Adapter – extends BaseAdapter for Disney+ Hotstar.
 //
-// Strategy: Netflix's class names change constantly. Instead
-// of targeting classes, we detect title cards by their <a>
-// links (href contains /watch/ or /title/) and extract titles
-// from aria-label attributes — both are stable across UI changes.
+// Strategy: Hotstar's CSS class names can change, so we target
+// cards by their <a> links (href contains /movies/, /shows/, or
+// /sports/) and extract titles from aria-label or img alt attrs
+// — both are stable across UI changes.
 // ============================================================
 
-class NetflixAdapter extends BaseAdapter {
+class HotstarAdapter extends BaseAdapter {
   constructor() {
-    super('netflix');
+    super('hotstar');
   }
 
   isActive() {
-    return location.hostname.includes('netflix.com');
+    return location.hostname.includes('hotstar.com');
   }
 
-  // Target the <a> link element inside each card.
-  // Netflix always wraps each title in an anchor with /watch/ or /title/ href.
+  // Target anchor elements that link to content detail pages.
   getCardSelector() {
     return [
-      'a[href*="/watch/"]',
-      'a[href*="/title/"]',
+      'a[href*="/movies/"]',
+      'a[href*="/shows/"]',
+      'a[href*="/sports/"]',
+      'a[href*="/episode/"]',
     ].join(', ');
   }
 
-  // The badge container is the <a> element itself (it already
-  // has position:relative in Netflix's own CSS for its overlays).
+  // The badge container is the <a> element itself.
   getBadgeContainer(cardElement) {
     return cardElement;
   }
 
   extractTitleFromCard(cardElement) {
-    // Only process <a> elements that wrap an image (poster/thumbnail cards).
-    // Info-section links inside the hover popup (e.g. the title text link) also
-    // match our href selector but contain no <img>, so they would get a badge
-    // injected into the info bar at the wrong position.
-    if (!cardElement.querySelector('img')) return null;
-
-    // Resolve aria-labelledby if present.
-    const labelledById = cardElement.getAttribute('aria-labelledby');
-    const labelledByText = labelledById
-      ? document.getElementById(labelledById)?.textContent?.trim()
-      : null;
-
     const candidates = [
-      // Most reliable: aria-label on the <a> itself.
       cardElement.getAttribute('aria-label'),
-      // aria-labelledby target.
-      labelledByText,
-      // HTML title attribute (sometimes used instead of aria-label).
-      cardElement.getAttribute('title'),
-      // Parent wrapper may carry aria-label on some card layouts.
-      cardElement.parentElement?.getAttribute('aria-label'),
-      // Inner element with aria-label (e.g. a nested visually-hidden span).
       cardElement.querySelector('[aria-label]')?.getAttribute('aria-label'),
-      // Netflix renders a text title div in some layouts (even when visually
-      // hidden) — class names contain "fallback-text" or "title".
-      cardElement.querySelector('[class*="fallback-text"]')?.textContent?.trim(),
-      // Image alt text.
       cardElement.querySelector('img')?.getAttribute('alt'),
+      cardElement.querySelector('p')?.textContent,
+      cardElement.querySelector('span')?.textContent,
     ];
 
     for (const candidate of candidates) {
@@ -77,17 +55,10 @@ class NetflixAdapter extends BaseAdapter {
 
   cleanTitle(raw) {
     return raw
-      // Separator + season keyword + number: "Show: Season 2", "Show - Series 1"
       .replace(/\s*[:\-–]\s*(season|part|volume|series|episode)\s*\d+.*/i, '')
-      // Space-only separator (no colon/dash): "Breaking Bad Season 5",
-      // "Brooklyn Nine-Nine Season 7", "Show S2E1"
-      .replace(/\s+(season|series)\s+\d+.*/i, '')
-      .replace(/\s+S\d{1,2}(E\d+|[\s:,]|$).*/i, '')
-      // Year in parentheses: "Show (2013)"
-      .replace(/\s*\(\d{4}\)\s*$/, '')
-      // Trailing descriptors
-      .replace(/\s*(limited series|miniseries|documentary|film)$/i, '')
-      .replace(/\s*[-–]\s*Netflix\s*$/i, '')
+      .replace(/\s*(limited series|miniseries|documentary|film|trailer|teaser)$/i, '')
+      .replace(/\s*[-–]\s*hotstar\s*$/i, '')
+      .replace(/\s*[-–]\s*disney\+?\s*$/i, '')
       .trim();
   }
 }
@@ -114,11 +85,11 @@ const NAV_SCAN_DELAY_MS = 1500;
       });
     });
 
-    const enabled = settings.enabledPlatforms?.netflix !== false;
+    const enabled = settings.enabledPlatforms?.hotstar !== false;
     const hasKey = !!settings.omdbApiKey;
 
     if (!enabled) {
-      console.log('[IMDB OTT] Netflix disabled by user settings.');
+      console.log('[IMDB OTT] Hotstar disabled by user settings.');
       return;
     }
 
@@ -127,12 +98,12 @@ const NAV_SCAN_DELAY_MS = 1500;
       return;
     }
 
-    console.log('[IMDB OTT] Netflix adapter initialising…');
+    console.log('[IMDB OTT] Hotstar adapter initialising…');
 
-    const adapter = new NetflixAdapter();
+    const adapter = new HotstarAdapter();
     adapter.start();
 
-    // Retry scan a few times — Netflix renders cards progressively
+    // Retry scan a few times — Hotstar renders cards progressively
     let retries = 0;
     const retryInterval = setInterval(() => {
       adapter.scanExisting();
@@ -172,16 +143,16 @@ const NAV_SCAN_DELAY_MS = 1500;
 
     // React to settings changes (e.g. platform toggled off from popup)
     chrome.runtime.onMessage.addListener((message) => {
-      if (message.type === 'SETTINGS_UPDATED' && message.enabledPlatforms?.netflix === false) {
-        console.log('[IMDB OTT] Netflix disabled via settings — stopping adapter and clearing badges.');
+      if (message.type === 'SETTINGS_UPDATED' && message.enabledPlatforms?.hotstar === false) {
+        console.log('[IMDB OTT] Hotstar disabled via settings — stopping adapter and clearing badges.');
         adapter.stop();
         navObserver.disconnect();
         if (navRetryInterval) clearInterval(navRetryInterval);
       }
     });
 
-    console.log('[IMDB OTT] Netflix adapter ready.');
+    console.log('[IMDB OTT] Hotstar adapter ready.');
   } catch (err) {
-    console.error('[IMDB OTT] Netflix adapter failed to initialise:', err.message);
+    console.error('[IMDB OTT] Hotstar adapter failed to initialise:', err.message);
   }
 })();
