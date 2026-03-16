@@ -113,14 +113,14 @@ class BaseAdapter {
 
   processCard(cardElement) {
     if (this.processedCards.has(cardElement)) return;
-    this.processedCards.add(cardElement);
 
     const titleInfo = this.extractTitleFromCard(cardElement);
     if (!titleInfo || !titleInfo.title) {
       logDebug('[IMDB OTT] Could not extract title from card:', cardElement.className || cardElement.tagName);
-      return;
+      return; // Don't mark as processed — retry on next scanExisting pass
     }
 
+    this.processedCards.add(cardElement);
     logDebug(`[IMDB OTT] Processing card: "${titleInfo.title}"${titleInfo.year ? ` (${titleInfo.year})` : ''}`);
     this.fetchAndInject(cardElement, titleInfo);
   }
