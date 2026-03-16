@@ -9,6 +9,8 @@
   ],
   "host_permissions": [
     "*://*.netflix.com/*",
+    "*://*.primevideo.com/*",
+    "*://*.amazon.com/*",
     "*://*.hotstar.com/*",
     "*://www.omdbapi.com/*"
   ],
@@ -26,11 +28,17 @@
       "run_at": "document_idle"
     },
     {
+      "matches": ["*://*.primevideo.com/*", "*://*.amazon.com/*/video/*", "*://*.amazon.com/gp/video/*"],
+      "js": ["content-scripts/base-adapter.js", "content-scripts/prime.js"],
+      "css": ["styles/badge.css"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["*://*.hotstar.com/*"],
       "js": ["content-scripts/base-adapter.js", "content-scripts/hotstar.js"],
       "css": ["styles/badge.css"],
       "run_at": "document_idle"
-    }
+    },
   ],
   "action": {
     "default_popup": "popup/popup.html",
