@@ -14,6 +14,7 @@ chrome.storage.sync.get(['omdbApiKey', 'enabledPlatforms'], (settings) => {
 
   const platforms = settings.enabledPlatforms || {};
   $('toggle-netflix').checked = platforms.netflix !== false; // default on
+  $('toggle-prime').checked = platforms.prime !== false; // default on
 });
 
 // ── Eye toggle for API key ─────────────────────────────────
@@ -41,7 +42,7 @@ $('save-btn').addEventListener('click', () => {
 
   const enabledPlatforms = {
     netflix: $('toggle-netflix').checked,
-    prime: false,
+    prime: $('toggle-prime').checked,
     hotstar: false,
   };
 
