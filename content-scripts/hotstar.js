@@ -16,28 +16,39 @@ class HotstarAdapter extends BaseAdapter {
     return location.hostname.includes('hotstar.com');
   }
 
-  // Target anchor elements that link to content detail pages.
+  // Target both the card container and the image specifically to catch all variants
   getCardSelector() {
-    return [
-      'a[href*="/movies/"]',
-      'a[href*="/shows/"]',
-      'a[href*="/sports/"]',
-      'a[href*="/episode/"]',
-    ].join(', ');
+    return 'article, [data-testid="hs-image"]';
   }
 
-  // The badge container is the <a> element itself.
+  // Prefer injecting directly into the image wrapper for best visual alignment
   getBadgeContainer(cardElement) {
+    if (cardElement.tagName === 'ARTICLE') {
+      return cardElement.querySelector('[data-testid="hs-image"]') || cardElement;
+    }
     return cardElement;
   }
 
   extractTitleFromCard(cardElement) {
+    const parent = cardElement.closest('article');
+
+    // If this is an hs-image container INSIDE an article, ignore it.
+    // The article scanner will handle the whole card and inject into this container.
+    if (cardElement.getAttribute('data-testid') === 'hs-image' && parent) {
+      return null;
+    }
+
     const candidates = [
+      cardElement.querySelector('img')?.getAttribute('alt'),
+      cardElement.querySelector('span[title]')?.textContent,
+      cardElement.querySelector('h2')?.textContent,
+      cardElement.querySelector('h3')?.textContent,
+      cardElement.querySelector('h4')?.textContent,
       cardElement.getAttribute('aria-label'),
       cardElement.querySelector('[aria-label]')?.getAttribute('aria-label'),
-      cardElement.querySelector('img')?.getAttribute('alt'),
+      parent?.getAttribute('aria-label'),
+      parent?.getAttribute('title'),
       cardElement.querySelector('p')?.textContent,
-      cardElement.querySelector('span')?.textContent,
     ];
 
     for (const candidate of candidates) {
@@ -55,7 +66,11 @@ class HotstarAdapter extends BaseAdapter {
 
   cleanTitle(raw) {
     return raw
+      // Handle comma-separated metadata: "Movie Title, Action, 2h 22m"
+      .replace(/,.*$/, '') 
+      // Handle "Show: Season 2"
       .replace(/\s*[:\-–]\s*(season|part|volume|series|episode)\s*\d+.*/i, '')
+      // Handle trailing movie/series descriptors
       .replace(/\s*(limited series|miniseries|documentary|film|trailer|teaser)$/i, '')
       .replace(/\s*[-–]\s*hotstar\s*$/i, '')
       .replace(/\s*[-–]\s*disney\+?\s*$/i, '')
@@ -119,7 +134,7 @@ const NAV_SCAN_DELAY_MS = 1500;
         lastUrl = location.href;
         console.log('[IMDB OTT] Page navigated to:', lastUrl);
         setTimeout(() => {
-          adapter.processedCards = new WeakSet();
+          adapter.processedCards = new WeakMap();
           adapter.scanExisting();
 
           let navRetries = 0;

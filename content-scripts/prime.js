@@ -17,27 +17,43 @@ class PrimeVideoAdapter extends BaseAdapter {
     return location.hostname.includes('primevideo.com') || location.hostname.includes('amazon.com');
   }
 
-  // Target <a> elements that link to a title detail page.
-  // Prime Video consistently uses /detail/<ASIN>/ URLs for all title cards.
+  // Only match <a href="/detail/…"> links that contain a thumbnail <img>.
+  // This excludes Play buttons, Watch buttons, and other detail-page links
+  // that don't have a poster image inside them.
   getCardSelector() {
     return [
-      'a[href*="/detail/"]',
-      'a[href*="/gp/video/detail/"]',
+      'a[href*="/detail/"]:has(img)',
+      'a[href*="/gp/video/detail/"]:has(img)',
     ].join(', ');
   }
 
-  // The badge container is the <a> element itself.
+  // Place the badge on the <img>'s direct parent so it sits squarely
+  // on the poster thumbnail rather than on a wide card wrapper.
   getBadgeContainer(cardElement) {
+    const img = cardElement.querySelector('img');
+    if (img && img.parentElement) {
+      return img.parentElement;
+    }
     return cardElement;
   }
 
   extractTitleFromCard(cardElement) {
+    // Reject pure Play / Watch buttons — they share the same /detail/ href
+    // but their aria-label is something like "Play Dating & New York" or
+    // "Watch now". We only want the thumbnail card links.
+    const selfLabel = (cardElement.getAttribute('aria-label') || '').toLowerCase();
+    if (/^\s*(play|watch|resume|continue)\b/i.test(selfLabel)) {
+      return null;
+    }
+
     // aria-label on the <a> is the most reliable signal.
     // Prime Video typically sets it to the title name.
+    const img = cardElement.querySelector('img');
     const candidates = [
       cardElement.getAttribute('aria-label'),
       cardElement.querySelector('[aria-label]')?.getAttribute('aria-label'),
-      cardElement.querySelector('img')?.getAttribute('alt'),
+      img?.getAttribute('alt'),
+      img?.getAttribute('title'),
     ];
 
     for (const candidate of candidates) {
@@ -118,7 +134,7 @@ const NAV_SCAN_DELAY_MS = 1500;
         lastUrl = location.href;
         console.log('[IMDB OTT] Page navigated to:', lastUrl);
         setTimeout(() => {
-          adapter.processedCards = new WeakSet();
+          adapter.processedCards = new WeakMap();
           adapter.scanExisting();
 
           let navRetries = 0;

@@ -60,12 +60,18 @@ async function fetchRatingFromOMDb(title, year) {
   if (year) params.set('y', year);
 
   let data = await queryOMDb(params);
+  if (data && data.error === 'INVALID_API_KEY') {
+    return data;
+  }
 
   // If no movie match, try series
   if (!data || data.Response === 'False') {
     logDebug(`[IMDB OTT SW] No movie match for "${title}", retrying as series…`);
     params.set('type', 'series');
     data = await queryOMDb(params);
+    if (data && data.error === 'INVALID_API_KEY') {
+      return data;
+    }
   }
 
   if (!data || data.Response === 'False') {
@@ -106,15 +112,25 @@ async function queryOMDb(params) {
       clearTimeout(timeoutId);
       if (!resp.ok) {
         console.error(`[IMDB OTT SW] OMDb HTTP error: ${resp.status} ${resp.statusText}`);
+        if (resp.status === 401) {
+          throw new Error('INVALID_API_KEY');
+        }
         return null;
       }
       const json = await resp.json();
+      if (json.Response === 'False' && json.Error === 'Invalid API key!') {
+        throw new Error('INVALID_API_KEY');
+      }
       if (json.Error) {
         logDebug(`[IMDB OTT SW] OMDb response error: "${json.Error}"`);
       }
       return json;
     } catch (e) {
       clearTimeout(timeoutId);
+      if (e.message === 'INVALID_API_KEY') {
+        console.error(`[IMDB OTT SW] OMDb API key is invalid.`);
+        return { error: 'INVALID_API_KEY' };
+      }
       const isTimeout = e.name === 'AbortError';
       const label = isTimeout ? 'Timeout' : 'Network error';
       if (attempt < MAX_RETRIES) {

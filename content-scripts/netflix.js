@@ -148,7 +148,7 @@ const NAV_SCAN_DELAY_MS = 1500;
         lastUrl = location.href;
         console.log('[IMDB OTT] Page navigated to:', lastUrl);
         setTimeout(() => {
-          adapter.processedCards = new WeakSet();
+          adapter.processedCards = new WeakMap();
           adapter.scanExisting();
 
           let navRetries = 0;

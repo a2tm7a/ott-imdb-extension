@@ -38,7 +38,7 @@
       "js": ["content-scripts/base-adapter.js", "content-scripts/hotstar.js"],
       "css": ["styles/badge.css"],
       "run_at": "document_idle"
-    },
+    }
   ],
   "action": {
     "default_popup": "popup/popup.html",

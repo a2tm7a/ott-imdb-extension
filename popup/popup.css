@@ -45,6 +45,7 @@
 
   --status-ok:        #8fd400;
   --status-error:     #e87c3e;
+  --status-pending:   #f5c518;
   --save-status:      #8fd400;
 }
 
@@ -86,6 +87,7 @@
 
     --status-ok:        #3a8a00;
     --status-error:     #c0520d;
+    --status-pending:   #c89e00;
     --save-status:      #3a8a00;
   }
 }
@@ -265,6 +267,7 @@ body {
 }
 .popup__api-status--ok    { color: var(--status-ok); }
 .popup__api-status--error { color: var(--status-error); }
+.popup__api-status--pending { color: var(--status-pending); }
 
 /* ── Divider ─────────────────────────────────────────── */
 

@@ -15,8 +15,8 @@ class BaseAdapter {
   constructor(platformKey) {
     this.platformKey = platformKey;
     this.observer = null;
-    this.processedCards = new WeakSet();
-    this.pendingTitles = new Map(); // element → { title, year }
+    this.processedCards = new WeakMap(); // cardElement → processed title
+    this.pendingTitles = new WeakMap(); // cardElement → pending title
   }
 
   // ── To be implemented by subclasses ──────────────────────
@@ -79,7 +79,10 @@ class BaseAdapter {
 
   scanExisting() {
     const cards = document.querySelectorAll(this.getCardSelector());
-    const unprocessed = [...cards].filter((c) => !this.processedCards.has(c)).length;
+    let unprocessed = 0;
+    cards.forEach((c) => {
+        if (!this.processedCards.has(c)) unprocessed++;
+    });
     if (unprocessed > 0) {
       log(`[IMDB OTT] scanExisting → found ${cards.length} cards (${unprocessed} new) on ${this.platformKey}`);
     }
@@ -112,28 +115,60 @@ class BaseAdapter {
   }
 
   processCard(cardElement) {
-    if (this.processedCards.has(cardElement)) return;
-
     const titleInfo = this.extractTitleFromCard(cardElement);
     if (!titleInfo || !titleInfo.title) {
       logDebug('[IMDB OTT] Could not extract title from card:', cardElement.className || cardElement.tagName);
-      return; // Don't mark as processed — retry on next scanExisting pass
+      return; // retry on next scan
     }
 
-    this.processedCards.add(cardElement);
+    const previousTitle = this.processedCards.get(cardElement);
+    if (previousTitle === titleInfo.title) {
+      // DOM node was already processed for this exact title
+      return;
+    }
+
+    // If there's an ongoing fetch for this same title on this element, ignore.
+    if (this.pendingTitles.get(cardElement) === titleInfo.title) {
+      return;
+    }
+
+    // This is a new title for this node (node recycling) or first time seeing it.
+    this.processedCards.set(cardElement, titleInfo.title);
+    this.pendingTitles.set(cardElement, titleInfo.title);
+
+    // If there's an old badge from a previous recycled movie, rip it out.
+    const oldAnchor = cardElement.querySelector('.imdb-ott-anchor');
+    if (oldAnchor) oldAnchor.remove();
+
     logDebug(`[IMDB OTT] Processing card: "${titleInfo.title}"${titleInfo.year ? ` (${titleInfo.year})` : ''}`);
-    this.fetchAndInject(cardElement, titleInfo);
+    this.fetchAndInject(cardElement, titleInfo).finally(() => {
+      // Clear pending state only if it hasn't been overwritten by another fast DOM recycling
+      if (this.pendingTitles.get(cardElement) === titleInfo.title) {
+         this.pendingTitles.delete(cardElement);
+      }
+    });
   }
 
   async fetchAndInject(cardElement, { title, year }) {
     try {
       const data = await this.fetchRating(title, year);
+      
+      // Since fetch is async, verify this card hasn't been recycled for ANOTHER movie meanwhile
+      if (this.processedCards.get(cardElement) !== title) {
+          logDebug(`[IMDB OTT] Card recycled: dropping rating for "${title}"`);
+          return;
+      }
+
       if (!data) {
         logWarn(`[IMDB OTT] No response from service worker for "${title}"`);
         return;
       }
       if (data.error === 'NO_API_KEY') {
         console.error('[IMDB OTT] API key missing — open the extension popup to set one.');
+        return;
+      }
+      if (data.error === 'INVALID_API_KEY') {
+        console.error('[IMDB OTT] API key is invalid or unauthorized — please check your API key in the extension popup.');
         return;
       }
       if (data.error === 'NOT_FOUND') {
@@ -194,25 +229,16 @@ class BaseAdapter {
     badge.appendChild(star);
     badge.appendChild(ratingSpan);
 
-    // Wrap badge in a zero-size absolutely-positioned anchor so we never
-    // mutate any inline styles on Netflix's own elements.
+    // Use class-based styling instead of inline styles to prevent CSP violations
     const anchor = document.createElement('div');
     anchor.className = 'imdb-ott-anchor';
-    anchor.style.cssText = [
-      'position:absolute',
-      'top:0', 'left:0', 'right:0', 'bottom:0',
-      'width:100%', 'height:100%',
-      'pointer-events:none',
-      'z-index:99998',
-      'overflow:visible',
-    ].join(';');
     anchor.appendChild(badge);
 
     // Insert anchor as first child so it sits behind Netflix's own overlays
     // (TOP 10 badge etc.) which come later in the DOM.
     // Use getComputedStyle so we catch position set via CSS class, not just inline style.
     if (window.getComputedStyle(container).position === 'static') {
-      container.style.position = 'relative';
+      container.classList.add('imdb-ott-container-relative');
     }
     container.insertBefore(anchor, container.firstChild);
 
