@@ -38,22 +38,35 @@ class PrimeVideoAdapter extends BaseAdapter {
   }
 
   extractTitleFromCard(cardElement) {
+    // Prime Video hero section and detail buttons often have "More details for [Title]" labels.
+    const rawLabel = cardElement.getAttribute('aria-label') || '';
+    if (rawLabel.toLowerCase().includes('more details for')) {
+      const match = rawLabel.match(/more details for\s+(.*)/i);
+      if (match) return { title: this.cleanTitle(match[1]) };
+    }
+
     // Reject pure Play / Watch buttons — they share the same /detail/ href
     // but their aria-label is something like "Play Dating & New York" or
     // "Watch now". We only want the thumbnail card links.
-    const selfLabel = (cardElement.getAttribute('aria-label') || '').toLowerCase();
-    if (/^\s*(play|watch|resume|continue)\b/i.test(selfLabel)) {
+    if (/^\s*(play|watch|resume|continue)\b/i.test(rawLabel.toLowerCase())) {
       return null;
     }
 
-    // aria-label on the <a> is the most reliable signal.
-    // Prime Video typically sets it to the title name.
+    // Resolve aria-labelledby if present (sometimes used for title overlays).
+    const labelledById = cardElement.getAttribute('aria-labelledby');
+    const labelledByText = labelledById
+      ? document.getElementById(labelledById)?.textContent?.trim()
+      : null;
+
     const img = cardElement.querySelector('img');
     const candidates = [
       cardElement.getAttribute('aria-label'),
       cardElement.querySelector('[aria-label]')?.getAttribute('aria-label'),
+      labelledByText,
       img?.getAttribute('alt'),
       img?.getAttribute('title'),
+      // Fallback: check closest container for a title text if aria-label is missing on standard links
+      cardElement.closest('[class*="Card"]')?.querySelector('[class*="Title"]')?.textContent,
     ];
 
     for (const candidate of candidates) {
@@ -71,9 +84,13 @@ class PrimeVideoAdapter extends BaseAdapter {
 
   cleanTitle(raw) {
     return raw
+      // Prime-specific metadata patterns
       .replace(/\s*[:\-–]\s*(season|part|volume|series|episode)\s*\d+.*/i, '')
+      .replace(/\s+\d+\s+(season|seasons|episode|episodes).*/i, '') // "Show 3 Seasons"
+      .replace(/\s*(new season|included with prime|included with your prime membership)$/i, '')
       .replace(/\s*(limited series|miniseries|documentary|film)$/i, '')
-      .replace(/\s*[-–]\s*(amazon|prime\s*video)\s*$/i, '')
+      .replace(/\x20\(?\d{4}\)?$/i, '') // Year in parentheses at end: "Title (2024)"
+      .replace(/\s*[-–]\s*(amazon|prime\s*video|prime)\s*$/i, '') // "Title - Amazon" or "Title - Prime Video"
       .trim();
   }
 }
