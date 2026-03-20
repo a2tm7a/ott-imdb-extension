@@ -16,27 +16,27 @@ class NetflixAdapter extends BaseAdapter {
     return location.hostname.includes('netflix.com');
   }
 
-  // Target the <a> link element inside each card.
+  // Target the <a> link element inside each card AND the hero billboard container.
   // Netflix always wraps each title in an anchor with /watch/ or /title/ href.
+  // The hero billboard uses a separate container class.
   getCardSelector() {
     return [
       'a[href*="/watch/"]',
       'a[href*="/title/"]',
+      // Hero/billboard banner (the big featured title at top of home page)
+      '[class*="billboard"]',
+      '[class*="hero-tab-header"]',
     ].join(', ');
   }
 
-  // The badge container is the <a> element itself (it already
-  // has position:relative in Netflix's own CSS for its overlays).
-  getBadgeContainer(cardElement) {
-    return cardElement;
-  }
-
   extractTitleFromCard(cardElement) {
-    // Only process <a> elements that wrap an image (poster/thumbnail cards).
+    const isHero = this._isHeroElement(cardElement);
+
+    // For regular <a> cards: only process those that wrap an image (poster/thumbnail cards).
     // Info-section links inside the hover popup (e.g. the title text link) also
     // match our href selector but contain no <img>, so they would get a badge
     // injected into the info bar at the wrong position.
-    if (!cardElement.querySelector('img')) return null;
+    if (!isHero && !cardElement.querySelector('img')) return null;
 
     // Resolve aria-labelledby if present.
     const labelledById = cardElement.getAttribute('aria-labelledby');
@@ -45,21 +45,32 @@ class NetflixAdapter extends BaseAdapter {
       : null;
 
     const candidates = [
-      // Most reliable: aria-label on the <a> itself.
+      // Most reliable: aria-label on the element itself.
       cardElement.getAttribute('aria-label'),
       // aria-labelledby target.
       labelledByText,
       // HTML title attribute (sometimes used instead of aria-label).
       cardElement.getAttribute('title'),
-      // Parent wrapper may carry aria-label on some card layouts.
+      // Parent wrapper may carry aria-label on some card layouts (e.g. <li> wrapping <a>).
       cardElement.parentElement?.getAttribute('aria-label'),
+      cardElement.parentElement?.parentElement?.getAttribute('aria-label'),
       // Inner element with aria-label (e.g. a nested visually-hidden span).
       cardElement.querySelector('[aria-label]')?.getAttribute('aria-label'),
       // Netflix renders a text title div in some layouts (even when visually
       // hidden) — class names contain "fallback-text" or "title".
       cardElement.querySelector('[class*="fallback-text"]')?.textContent?.trim(),
-      // Image alt text.
-      cardElement.querySelector('img')?.getAttribute('alt'),
+      cardElement.querySelector('[class*="title-card-title"]')?.textContent?.trim(),
+      cardElement.querySelector('[class*="logo-text"]')?.textContent?.trim(),
+      // Hero billboard: title is often in an <img alt="Title"> logo or a heading.
+      ...(isHero ? [
+        cardElement.querySelector('img[alt]')?.getAttribute('alt'),
+        cardElement.querySelector('h1, h2, h3')?.textContent?.trim(),
+        // The play button aria-label on the hero often reads "Play {Title}"
+        cardElement.querySelector('[aria-label*="Play"]')?.getAttribute('aria-label')?.replace(/^Play\s+/i, ''),
+      ] : [
+        // Image alt text (for regular thumbnail cards).
+        cardElement.querySelector('img')?.getAttribute('alt'),
+      ]),
     ];
 
     for (const candidate of candidates) {
@@ -75,9 +86,32 @@ class NetflixAdapter extends BaseAdapter {
     return null;
   }
 
+  /** Returns true if the element is the hero/billboard banner rather than a thumbnail card. */
+  _isHeroElement(el) {
+    const cls = el.className || '';
+    return /billboard|hero-tab-header/i.test(cls);
+  }
+
+  /**
+   * For hero elements, inject the badge into a stable child container
+   * so it doesn't overflow the whole page width.
+   */
+  getBadgeContainer(cardElement) {
+    if (this._isHeroElement(cardElement)) {
+      // Use the info/metadata pane inside the billboard if it exists.
+      return (
+        cardElement.querySelector('[class*="info"]') ||
+        cardElement.querySelector('[class*="metadata"]') ||
+        cardElement.querySelector('[class*="synopsis"]') ||
+        cardElement
+      );
+    }
+    return cardElement;
+  }
+
   cleanTitle(raw) {
     return raw
-      // Handle comma-separated metadata if present
+      // Handle comma-separated metadata if present (e.g. "Virgin River, New Season")
       .replace(/,.*$/, '')
       // Separator + season keyword + number: "Show: Season 2", "Show - Series 1"
       .replace(/\s*[:\-–]\s*(season|part|volume|series|episode)\s*\d+.*/i, '')
@@ -88,8 +122,10 @@ class NetflixAdapter extends BaseAdapter {
       // Year in parentheses: "Show (2013)"
       .replace(/\s*\(\d{4}\)\s*$/, '')
       // Trailing descriptors
-      .replace(/\s*(limited series|miniseries|documentary|film|new season)$/i, '')
+      .replace(/\s*(limited series|miniseries|documentary|film|new season|new episodes?)$/i, '')
       .replace(/\s*[-–]\s*Netflix\s*$/i, '')
+      // Clean up any trailing punctuation or whitespace left over
+      .replace(/[:\-–,]+$/, '')
       .trim();
   }
 }
