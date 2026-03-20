@@ -34,9 +34,9 @@ class NetflixAdapter extends BaseAdapter {
     const isHero = this._isHeroElement(cardElement);
 
     // If this is a regular <a> link, check if it's already inside a billboard we are processing.
-    // This prevents double badges (one for the billboard, one for the link inside it).
+    // We check for many possible hero container classes to be safe.
     if (!isHero) {
-      if (cardElement.closest('[class*="billboard"], [class*="hero-tab-header"]')) {
+      if (cardElement.closest('[class*="billboard"], [class*="hero"], [class*="billed-board"], [class*="Hero"]')) {
         return null;
       }
       // For regular <a> cards: only process those that wrap an image (poster/thumbnail cards).
@@ -94,22 +94,22 @@ class NetflixAdapter extends BaseAdapter {
   /** Returns true if the element is the hero/billboard banner rather than a thumbnail card. */
   _isHeroElement(el) {
     const cls = el.className || '';
-    return /billboard|hero-tab-header/i.test(cls);
+    // Netflix uses billboard, hero-v2, hero-tab-header, etc.
+    return /billboard|hero|billed-board/i.test(cls);
   }
 
   /**
-   * For hero elements, inject the badge into a stable child container
-   * so it doesn't overflow the whole page width.
+   * For hero elements, inject the badge into a stable child container.
+   * Prioritizes metadata and wrapper containers over text areas like synopsis.
    */
   getBadgeContainer(cardElement) {
     if (this._isHeroElement(cardElement)) {
-      // For billboards, try to find the specific info container so the badge
-      // aligns with the title text rather than floating at the top of the large container.
       return (
         cardElement.querySelector('[class*="info-wrapper"]') ||
         cardElement.querySelector('[class*="info-container"]') ||
-        cardElement.querySelector('[class*="meta-data"]') ||
-        cardElement.querySelector('[class*="info"]') ||
+        cardElement.querySelector('[class*="meta-data-container"]') ||
+        cardElement.querySelector('[class*="metadata"]') ||
+        cardElement.querySelector('[class*="helper-container"]') ||
         cardElement
       );
     }
