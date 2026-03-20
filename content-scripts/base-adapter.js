@@ -114,6 +114,11 @@ class BaseAdapter {
     log(`[IMDB OTT] MutationObserver attached to document.body.`);
   }
 
+  /** Returns false if the extension context has been invalidated (e.g. extension updated/reloaded). */
+  isContextValid() {
+    return !!(chrome.runtime?.id && chrome.runtime?.getURL);
+  }
+
   processCard(cardElement) {
     const titleInfo = this.extractTitleFromCard(cardElement);
     if (!titleInfo || !titleInfo.title) {
@@ -141,12 +146,20 @@ class BaseAdapter {
     if (oldAnchor) oldAnchor.remove();
 
     logDebug(`[IMDB OTT] Processing card: "${titleInfo.title}"${titleInfo.year ? ` (${titleInfo.year})` : ''}`);
-    this.fetchAndInject(cardElement, titleInfo).finally(() => {
-      // Clear pending state only if it hasn't been overwritten by another fast DOM recycling
-      if (this.pendingTitles.get(cardElement) === titleInfo.title) {
-         this.pendingTitles.delete(cardElement);
-      }
-    });
+
+    // Throttle: Add a small randomized delay (0-300ms) so we don't spam 50+ messages
+    // to the service worker in a single frame during the initial page scan.
+    const delay = Math.floor(Math.random() * 300);
+    setTimeout(() => {
+      if (!this.isContextValid()) return;
+
+      this.fetchAndInject(cardElement, titleInfo).finally(() => {
+        // Clear pending state only if it hasn't been overwritten by another fast DOM recycling
+        if (this.pendingTitles.get(cardElement) === titleInfo.title) {
+          this.pendingTitles.delete(cardElement);
+        }
+      });
+    }, delay);
   }
 
   async fetchAndInject(cardElement, { title, year }) {
@@ -194,10 +207,20 @@ class BaseAdapter {
   }
 
   fetchRating(title, year) {
+    if (!this.isContextValid()) {
+      return Promise.reject(new Error('Extension context invalidated'));
+    }
+
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({ type: 'FETCH_RATING', title, year }, (response) => {
         if (chrome.runtime.lastError) {
-          console.error(`[IMDB OTT] sendMessage error for "${title}":`, chrome.runtime.lastError.message);
+          const errMsg = chrome.runtime.lastError.message;
+          // Only log as debug/warn to avoid console noise for transient/orphaned issues
+          if (errMsg.includes('context invalidated')) {
+            logDebug(`[IMDB OTT] Extension context invalidated while fetching "${title}".`);
+          } else {
+            logWarn(`[IMDB OTT] ${errMsg} for "${title}"`);
+          }
           return reject(chrome.runtime.lastError);
         }
         resolve(response);
