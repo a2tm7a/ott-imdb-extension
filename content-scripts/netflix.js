@@ -77,6 +77,8 @@ class NetflixAdapter extends BaseAdapter {
 
   cleanTitle(raw) {
     return raw
+      // Handle comma-separated metadata if present
+      .replace(/,.*$/, '')
       // Separator + season keyword + number: "Show: Season 2", "Show - Series 1"
       .replace(/\s*[:\-–]\s*(season|part|volume|series|episode)\s*\d+.*/i, '')
       // Space-only separator (no colon/dash): "Breaking Bad Season 5",
@@ -86,7 +88,7 @@ class NetflixAdapter extends BaseAdapter {
       // Year in parentheses: "Show (2013)"
       .replace(/\s*\(\d{4}\)\s*$/, '')
       // Trailing descriptors
-      .replace(/\s*(limited series|miniseries|documentary|film)$/i, '')
+      .replace(/\s*(limited series|miniseries|documentary|film|new season)$/i, '')
       .replace(/\s*[-–]\s*Netflix\s*$/i, '')
       .trim();
   }
