@@ -50,6 +50,14 @@
 .imdb-ott-badge--good  .imdb-ott-badge__star { color: #ff9800 !important; }
 .imdb-ott-badge--poor  .imdb-ott-badge__star { color: #f44336 !important; }
 
+/* N/A fallback badge — muted grey, lower opacity to distinguish from real ratings */
+.imdb-ott-badge--na {
+  opacity: 0.6 !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+.imdb-ott-badge--na .imdb-ott-badge__star { color: #9e9e9e !important; }
+.imdb-ott-badge--na .imdb-ott-badge__rating { color: #bdbdbd !important; }
+
 .imdb-ott-badge__star {
   font-size: 9px !important;
   line-height: 1 !important;

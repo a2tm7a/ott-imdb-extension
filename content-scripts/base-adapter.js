@@ -152,36 +152,44 @@ class BaseAdapter {
   async fetchAndInject(cardElement, { title, year }) {
     try {
       const data = await this.fetchRating(title, year);
-      
+
       // Since fetch is async, verify this card hasn't been recycled for ANOTHER movie meanwhile
       if (this.processedCards.get(cardElement) !== title) {
-          logDebug(`[IMDB OTT] Card recycled: dropping rating for "${title}"`);
-          return;
+        logDebug(`[IMDB OTT] Card recycled: dropping rating for "${title}"`);
+        return;
       }
 
+      // Silent failures — affect every card, so don't pollute UI with badges
       if (!data) {
         logWarn(`[IMDB OTT] No response from service worker for "${title}"`);
+        this.injectFallbackBadge(cardElement, '—', 'Could not reach the rating service');
         return;
       }
       if (data.error === 'NO_API_KEY') {
         console.error('[IMDB OTT] API key missing — open the extension popup to set one.');
-        return;
+        return; // silent — affects every card
       }
       if (data.error === 'INVALID_API_KEY') {
         console.error('[IMDB OTT] API key is invalid or unauthorized — please check your API key in the extension popup.');
-        return;
+        return; // silent — affects every card
       }
+
+      // Per-title failures — show a badge so the user knows we tried
       if (data.error === 'NOT_FOUND') {
         logDebug(`[IMDB OTT] "${title}" not found on OMDb.`);
+        this.injectFallbackBadge(cardElement, 'N/A', `"${title}" not found on IMDb`);
         return;
       }
       if (!data.imdbRating) {
         logDebug(`[IMDB OTT] "${title}" found but rating is unavailable.`);
+        this.injectFallbackBadge(cardElement, '?', `"${title}" has no rating yet on IMDb`);
         return;
       }
+
       this.injectBadge(cardElement, data);
     } catch (err) {
       logWarn(`[IMDB OTT] fetchAndInject failed for "${title}":`, err.message);
+      this.injectFallbackBadge(cardElement, '—', 'Rating fetch failed');
     }
   }
 
@@ -197,7 +205,14 @@ class BaseAdapter {
     });
   }
 
-  injectBadge(cardElement, data) {
+  /**
+   * Builds and inserts a badge element into the card.
+   * @param {Element} cardElement
+   * @param {string}  ratingText  - display text, e.g. "7.5", "N/A", "?", "—"
+   * @param {string}  colorClass  - BEM modifier, e.g. 'imdb-ott-badge--great'
+   * @param {string}  ariaLabel   - accessible description
+   */
+  _buildAndInsertBadge(cardElement, ratingText, colorClass, ariaLabel) {
     // Avoid double-injecting
     if (cardElement.querySelector('.imdb-ott-badge')) return;
 
@@ -207,16 +222,10 @@ class BaseAdapter {
       return;
     }
 
-    const rating = parseFloat(data.imdbRating);
-    const colorClass =
-      rating >= RATING_GREAT ? 'imdb-ott-badge--great'
-      : rating >= RATING_GOOD ? 'imdb-ott-badge--good'
-      : 'imdb-ott-badge--poor';
-
     const badge = document.createElement('div');
     badge.className = `imdb-ott-badge ${colorClass}`;
     badge.setAttribute('role', 'img');
-    badge.setAttribute('aria-label', `IMDB rating: ${data.imdbRating}`);
+    badge.setAttribute('aria-label', ariaLabel);
 
     const star = document.createElement('span');
     star.className = 'imdb-ott-badge__star';
@@ -224,24 +233,55 @@ class BaseAdapter {
 
     const ratingSpan = document.createElement('span');
     ratingSpan.className = 'imdb-ott-badge__rating';
-    ratingSpan.textContent = data.imdbRating;
+    ratingSpan.textContent = ratingText;
 
     badge.appendChild(star);
     badge.appendChild(ratingSpan);
 
-    // Use class-based styling instead of inline styles to prevent CSP violations
     const anchor = document.createElement('div');
     anchor.className = 'imdb-ott-anchor';
     anchor.appendChild(badge);
 
-    // Insert anchor as first child so it sits behind Netflix's own overlays
-    // (TOP 10 badge etc.) which come later in the DOM.
-    // Use getComputedStyle so we catch position set via CSS class, not just inline style.
+    // Insert anchor as first child so it sits behind platform overlays
+    // (e.g. Netflix TOP 10 badge) which come later in the DOM.
     if (window.getComputedStyle(container).position === 'static') {
       container.classList.add('imdb-ott-container-relative');
     }
     container.insertBefore(anchor, container.firstChild);
+  }
 
+  /** Inject a badge for a title that has a known IMDb rating. */
+  injectBadge(cardElement, data) {
+    const rating = parseFloat(data.imdbRating);
+    const colorClass =
+      rating >= RATING_GREAT ? 'imdb-ott-badge--great'
+      : rating >= RATING_GOOD ? 'imdb-ott-badge--good'
+      : 'imdb-ott-badge--poor';
+
+    this._buildAndInsertBadge(
+      cardElement,
+      data.imdbRating,
+      colorClass,
+      `IMDb rating: ${data.imdbRating}`,
+    );
     log(`[IMDB OTT] Badge injected: ${data.title} → ${data.imdbRating}`);
+  }
+
+  /**
+   * Inject a muted fallback badge when no rating is available.
+   * @param {Element} cardElement
+   * @param {string}  label   - short display text shown in the badge, e.g. "N/A", "?", "—"
+   * @param {string}  tooltip - description surfaced via aria-label / browser tooltip
+   */
+  injectFallbackBadge(cardElement, label, tooltip) {
+    // Don't double-inject a fallback on top of an existing successful badge
+    if (cardElement.querySelector('.imdb-ott-badge')) return;
+    logDebug(`[IMDB OTT] Fallback badge "${label}": ${tooltip}`);
+    this._buildAndInsertBadge(
+      cardElement,
+      label,
+      'imdb-ott-badge--na',
+      `IMDb: ${tooltip}`,
+    );
   }
 }
