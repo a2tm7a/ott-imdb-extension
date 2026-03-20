@@ -17,12 +17,13 @@ class NetflixAdapter extends BaseAdapter {
   }
 
   // Target the <a> link element inside each card AND the hero billboard container.
-  // Netflix always wraps each title in an anchor with /watch/ or /title/ href.
-  // The hero billboard uses a separate container class.
+  // We explicitly exclude the navigation header to avoid "N/A" badges on menu items.
   getCardSelector() {
     return [
-      'a[href*="/watch/"]',
-      'a[href*="/title/"]',
+      'main a[href*="/watch/"]',
+      'main a[href*="/title/"]',
+      '.bd a[href*="/watch/"]', // fallback for some layouts
+      '.bd a[href*="/title/"]',
       // Hero/billboard banner (the big featured title at top of home page)
       '[class*="billboard"]',
       '[class*="hero-tab-header"]',
@@ -32,11 +33,15 @@ class NetflixAdapter extends BaseAdapter {
   extractTitleFromCard(cardElement) {
     const isHero = this._isHeroElement(cardElement);
 
-    // For regular <a> cards: only process those that wrap an image (poster/thumbnail cards).
-    // Info-section links inside the hover popup (e.g. the title text link) also
-    // match our href selector but contain no <img>, so they would get a badge
-    // injected into the info bar at the wrong position.
-    if (!isHero && !cardElement.querySelector('img')) return null;
+    // If this is a regular <a> link, check if it's already inside a billboard we are processing.
+    // This prevents double badges (one for the billboard, one for the link inside it).
+    if (!isHero) {
+      if (cardElement.closest('[class*="billboard"], [class*="hero-tab-header"]')) {
+        return null;
+      }
+      // For regular <a> cards: only process those that wrap an image (poster/thumbnail cards).
+      if (!cardElement.querySelector('img')) return null;
+    }
 
     // Resolve aria-labelledby if present.
     const labelledById = cardElement.getAttribute('aria-labelledby');
@@ -98,11 +103,13 @@ class NetflixAdapter extends BaseAdapter {
    */
   getBadgeContainer(cardElement) {
     if (this._isHeroElement(cardElement)) {
-      // Use the info/metadata pane inside the billboard if it exists.
+      // For billboards, try to find the specific info container so the badge
+      // aligns with the title text rather than floating at the top of the large container.
       return (
+        cardElement.querySelector('[class*="info-wrapper"]') ||
+        cardElement.querySelector('[class*="info-container"]') ||
+        cardElement.querySelector('[class*="meta-data"]') ||
         cardElement.querySelector('[class*="info"]') ||
-        cardElement.querySelector('[class*="metadata"]') ||
-        cardElement.querySelector('[class*="synopsis"]') ||
         cardElement
       );
     }
