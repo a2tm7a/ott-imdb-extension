@@ -41,6 +41,13 @@ class NetflixAdapter extends BaseAdapter {
       }
       // For regular <a> cards: only process those that wrap an image (poster/thumbnail cards).
       if (!cardElement.querySelector('img')) return null;
+    } else {
+      // If this is a hero element but it is nested INSIDE another hero element 
+      // (e.g. .hero-tab-header nested inside .billboard-row), ignore the inner one 
+      // so we don't double inject badges in the hero section.
+      if (cardElement.parentElement && cardElement.parentElement.closest('[class*="billboard"], [class*="hero"], [class*="billed-board"], [class*="Hero"]')) {
+        return null;
+      }
     }
 
     // Resolve aria-labelledby if present.

@@ -15,7 +15,7 @@
     "*://www.omdbapi.com/*"
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://www.omdbapi.com;"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src https://www.omdbapi.com;"
   },
   "background": {
     "service_worker": "background/service-worker.js"

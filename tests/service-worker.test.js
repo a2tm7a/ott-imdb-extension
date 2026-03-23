@@ -96,18 +96,10 @@ describe('fetchRatingFromOMDb', () => {
     expect(result).toEqual({ error: 'INVALID_API_KEY' });
   });
 
-  test('retries as series when movie search returns Response=False', async () => {
+  test('returns most prominent result for title query without enforcing movie type', async () => {
     let callCount = 0;
     global.fetch = jest.fn().mockImplementation(async (url) => {
       callCount++;
-      // First call (movie): not found
-      if (url.includes('type=movie')) {
-        return {
-          ok: true,
-          json: async () => ({ Response: 'False', Error: 'Movie not found!' }),
-        };
-      }
-      // Second call (series): found
       return {
         ok: true,
         json: async () => ({
@@ -122,12 +114,12 @@ describe('fetchRatingFromOMDb', () => {
     });
 
     const result = await global.fetchRatingFromOMDb('Breaking Bad', null);
-    expect(callCount).toBe(2);
+    expect(callCount).toBe(1); // One network request only!
     expect(result.imdbRating).toBe('9.5');
     expect(result.title).toBe('Breaking Bad');
   });
 
-  test('returns { error: "NOT_FOUND" } when both movie and series searches fail', async () => {
+  test('returns { error: "NOT_FOUND" } when search fails completely', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ Response: 'False', Error: 'Movie not found!' }),

@@ -56,22 +56,12 @@ async function fetchRatingFromOMDb(title, year) {
 
   log(`[IMDB OTT SW] Fetching rating for: "${title}"${year ? ` (${year})` : ''}`);
 
-  const params = new URLSearchParams({ apikey: apiKey, t: title, type: 'movie' });
+  const params = new URLSearchParams({ apikey: apiKey, t: title });
   if (year) params.set('y', year);
 
   let data = await queryOMDb(params);
   if (data && data.error === 'INVALID_API_KEY') {
     return data;
-  }
-
-  // If no movie match, try series
-  if (!data || data.Response === 'False') {
-    logDebug(`[IMDB OTT SW] No movie match for "${title}", retrying as series…`);
-    params.set('type', 'series');
-    data = await queryOMDb(params);
-    if (data && data.error === 'INVALID_API_KEY') {
-      return data;
-    }
   }
 
   if (!data || data.Response === 'False') {
