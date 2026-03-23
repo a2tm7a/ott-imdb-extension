@@ -56,6 +56,11 @@ $('save-btn').addEventListener('click', async () => {
         $('save-btn').disabled = false;
         return;
       }
+      if (data.Error === 'Request limit reached!') {
+        setApiStatus('⚠️ Rate limit reached! (Try again in 24 hours)', 'error');
+        $('save-btn').disabled = false;
+        return;
+      }
       // Other errors (like "Movie not found") actually mean the key IS valid
     }
   } catch (err) {

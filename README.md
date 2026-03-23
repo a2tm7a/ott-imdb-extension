@@ -1,135 +1,99 @@
 # IMDB Ratings for OTT — Chrome Extension
 
-> **Stop watching bad movies.** Get IMDB ratings directly on Netflix thumbnails — before you click play.
+> **Stop watching bad movies.** Get IMDb ratings directly on thumbnails for Netflix, Prime Video, and Hotstar — before you click play.
 
 ---
 
-## What It Does
+## 🎬 What It Does
 
-Browsing Netflix and can't decide what to watch? This extension **automatically overlays IMDB ratings as badges on every title card** — no more opening new tabs, no more guessing, no more disappointing 90-minute commitments.
+Browsing streaming platforms and can't decide what to watch? This extension **automatically overlays IMDb ratings as color-coded badges** on every title card. No more opening new tabs, no more guessing, and no more disappointing 90-minute commitments.
 
-![IMDB ratings overlaid on Netflix thumbnails](screenshots/demo.png)
-
-Badges are color-coded at a glance:
+Badges are color-coded for instant decision making:
 
 | Tier | Rating | Color |
 |------|--------|-------|
-| **Great** | ≥ 8.0 | 🟢 Green `#4caf50` |
-| **Good** | ≥ 6.5 | 🟠 Orange `#ff9800` |
-| **Poor** | < 6.5 | 🔴 Red `#f44336` |
+| 💎 **Great** | ≥ 8.0 | 🟢 Green `#4caf50` |
+| ✅ **Good** | 6.5 – 7.9 | 🟠 Orange `#ff9800` |
+| ⚠️ **Poor** | < 6.5 | 🔴 Red `#f44336` |
+| ❓ **N/A** | Unrated | ⚪ Grey (Upcoming/Obscure) |
 
 ---
 
-## Features
+## ✨ Key Features
 
-- **Zero friction** — badges appear automatically as you scroll, no clicks needed
-- **Non-invasive UI** — overlays are pointer-events:none, so Netflix hover/expand animations work perfectly
-- **Smart caching** — each title is only looked up once per session; no redundant API calls
-- **SPA-aware** — follows Netflix's client-side navigation, so browsing rows always stays fresh
-- **Extensible** — built with an adapter pattern; adding Prime Video or Hotstar is ~20 lines of code
-
----
-
-## Installation (2 minutes)
-
-### Step 1 — Get a free OMDb API key
-Go to [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) and register.
-Free tier: **1,000 requests/day** — plenty for casual browsing.
-
-### Step 2 — Load the extension in Chrome
-1. Download or clone this repo
-2. Open `chrome://extensions` in your browser
-3. Toggle on **Developer Mode** (top-right)
-4. Click **Load unpacked** → select the project folder
-
-### Step 3 — Enter your API key
-1. Click the ★ extension icon in your Chrome toolbar
-2. Paste your OMDb API key and hit **Save**
-
-### Step 4 — Browse Netflix
-Open [netflix.com](https://netflix.com) and scroll. Ratings appear automatically on every title card.
+- **Multi-Platform Support** — Full coverage for **Netflix**, **Amazon Prime Video**, and **Disney+ Hotstar**.
+- **SPA-Optimized** — Advanced `MutationObserver` logic handles infinite scrolling and lazy-loaded content (essential for modern React-based streaming apps).
+- **Intelligent Quota Monitoring** — Automatically detects when you hit your OMDb 1,000 requests/day limit and notifies you in the console/popup.
+- **Non-Invasive UI** — Custom-engineered badge placement that doesn't interfere with platform-native hover effects or expand animations.
+- **Smart Caching** — Every title is cached in memory per session to ensure zero redundant API calls and lightning-fast scrolling.
+- **Adaptive Injector** — Handles complex DOM structures like `<picture>` tags and nested hero banners without breaking site layouts.
 
 ---
 
-## How It Works
+## 🛠️ Tech Stack
 
-The extension runs a `MutationObserver` that detects new title cards as Netflix loads them. It extracts titles from stable `aria-label` attributes (immune to Netflix's frequent CSS class renames), sends a lookup to a background service worker, which calls the OMDb API and caches results in memory. On a hit, a badge is injected directly into the card's DOM.
-
-```
-Scroll Netflix → Card detected → Title extracted → OMDb lookup (cached) → Badge injected
-```
-
-No page data is read or transmitted beyond title strings used for rating lookups.
+- **Extension**: Chrome Manifest V3 (MV3)
+- **Logic**: Vanilla JavaScript (Zero dependencies)
+- **API**: OMDb API (Open Movie Database)
+- **Styling**: BEM-architected CSS with isolation to prevent site style leakage.
+- **Testing**: Jest + JSDOM with 90+ comprehensive test cases.
 
 ---
 
-## Architecture
+## 🚀 Quick Setup (2 minutes)
 
-The extension follows Chrome's MV3 architecture with three isolated contexts:
+### 1. Get a free OMDb API key
+Register at [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx).
+*The free tier provides **1,000 requests per day**, which resets every 24 hours.*
 
-| Component | File(s) | Role |
-|---|---|---|
-| Content Script | `netflix.js`, `base-adapter.js` | DOM observation, title extraction, badge injection |
-| Service Worker | `background/service-worker.js` | OMDb API calls, in-memory cache |
-| Popup UI | `popup/` | API key input, per-platform toggle |
-| Badge Styles | `styles/badge.css` | Injected CSS for the overlay |
+### 2. Load the Extension
+1. Download or clone this repository.
+2. Open `chrome://extensions` in your browser.
+3. Enable **Developer Mode** (toggle in the top-right).
+4. Click **Load unpacked** and select the project folder.
 
----
-
-## Adding a New Platform
-
-The adapter pattern makes new platforms trivial to add:
-
-```js
-// content-scripts/prime.js
-class PrimeAdapter extends BaseAdapter {
-  constructor() { super('prime'); }
-  isActive() { return location.hostname.includes('primevideo.com'); }
-  getCardSelector() { return 'a[href*="/detail/"]'; }
-  extractTitleFromCard(el) {
-    const title = el.getAttribute('aria-label') || el.querySelector('img')?.alt;
-    return title ? { title } : null;
-  }
-}
-new PrimeAdapter().start();
-```
-
-Then register it in `manifest.json`. That's it.
+### 3. Configure
+1. Click the ★ icon in your Chrome toolbar.
+2. Paste your API key and click **Save Settings**.
+3. (Optional) Toggle specific platforms on or off.
 
 ---
 
-## Debugging
+## 🧬 Architecture: The Adapter Pattern
 
-| Where | What to look for |
+The project is built on a highly modular **Adapter Pattern**, making it trivial to add support for new streaming sites in under 20 lines of code.
+
+| Component | Responsibility |
 |---|---|
-| Netflix page console (`Cmd+Opt+J`) | Card detection, title extraction, badge injection |
-| `chrome://extensions` → Service Worker | OMDb API calls, cache hits, errors |
-
-Key log messages:
-```
-[IMDB OTT] scanExisting → found 18 cards on netflix
-[IMDB OTT] Badge injected: Money Heist → 8.3
-[IMDB OTT SW] Cache HIT → "money heist|"
-[IMDB OTT] Could not extract title from card   ← card skipped (no aria-label)
-```
+| `BaseAdapter` | Core lifecycle, DOM observation, caching, and badge injection logic. |
+| `PlatformAdapters` | Site-specific logic (selectors, title extraction, custom badge placement). |
+| `Service Worker` | Handles secure API communication and handles OMDb rate limits. |
+| `Popup` | Secure storage of API keys and per-platform configuration. |
 
 ---
 
-## Tech Stack
+## 🔬 Reliability & Testing
 
-- Chrome Extension Manifest V3
-- Vanilla JS (zero dependencies)
-- OMDb API (free tier)
-- CSS injected via content scripts
+The extension includes a robust test suite to ensure stability across frequent streaming site updates.
 
----
-
-## Contributing
-
-Platform adapters, bug fixes, and UI improvements are welcome. Open an issue or PR.
+- **Unit Tests**: Full coverage for every platform adapter's extraction logic.
+- **Edge Cases**: Handled fallback badges for missing ratings, upcoming titles (e.g., 2026 releases), and title cleaning.
+- **Integration Tests**: Live network verification script to validate OMDb API keys.
+- **CI Ready**: Run `npm test` to verify the entire 94-test pipeline.
 
 ---
 
-## License
+## 💡 Troubleshooting
 
-MIT
+| Issue | Cause | Fix |
+|---|---|---|
+| **Ratings show N/A** | OMDb found title but no rating exists | Correct behavior for brand-new or obscure titles. |
+| **Ratings show "?"** | Search failed for that exact title | Check if the title is very new or has a specialized name. |
+| **No badges appear** | API Key missing or Invalid | Open the popup and verify your key. |
+| **"Rate limit reached"** | 1,000 daily request limit hit | Your ratings will automatically return in 24 hours. |
+
+---
+
+## 📜 License
+
+[MIT](LICENSE) — Created with ❤️ for movie buffs everywhere.

@@ -60,7 +60,7 @@ async function fetchRatingFromOMDb(title, year) {
   if (year) params.set('y', year);
 
   let data = await queryOMDb(params);
-  if (data && data.error === 'INVALID_API_KEY') {
+  if (data && (data.error === 'INVALID_API_KEY' || data.error === 'LIMIT_REACHED')) {
     return data;
   }
 
@@ -102,6 +102,17 @@ async function queryOMDb(params) {
       clearTimeout(timeoutId);
       if (!resp.ok) {
         console.error(`[IMDB OTT SW] OMDb HTTP error: ${resp.status} ${resp.statusText}`);
+        
+        // Sometimes OMDB returns HTTP 401 with a payload like {"Error": "Request limit reached!"}
+        let payload = {};
+        try {
+          payload = await resp.clone().json();
+        } catch (e) {}
+        
+        if (payload.Error === 'Request limit reached!') {
+          throw new Error('LIMIT_REACHED');
+        }
+
         if (resp.status === 401) {
           throw new Error('INVALID_API_KEY');
         }
@@ -120,6 +131,10 @@ async function queryOMDb(params) {
       if (e.message === 'INVALID_API_KEY') {
         console.error(`[IMDB OTT SW] OMDb API key is invalid.`);
         return { error: 'INVALID_API_KEY' };
+      }
+      if (e.message === 'LIMIT_REACHED') {
+        console.error(`[IMDB OTT SW] OMDB 1,000 requests/day limit reached!`);
+        return { error: 'LIMIT_REACHED' };
       }
       const isTimeout = e.name === 'AbortError';
       const label = isTimeout ? 'Timeout' : 'Network error';

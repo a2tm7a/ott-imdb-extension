@@ -100,6 +100,14 @@ class BaseAdapter {
             logDebug(`[IMDB OTT] MutationObserver: matched node directly →`, node.className);
             this.processCard(node);
           }
+
+          // In React/SPAs (like Prime Video), a card <a> might be added empty,
+          // and the <img> or Title span is appended later. If this node was added
+          // INSIDE an existing card, we re-process the parent card.
+          const parentCard = node.closest?.(this.getCardSelector());
+          if (parentCard && parentCard !== node) {
+            this.processCard(parentCard);
+          }
           // Check descendants
           const descendants = node.querySelectorAll?.(this.getCardSelector()) || [];
           if (descendants.length) {
@@ -184,6 +192,10 @@ class BaseAdapter {
       }
       if (data.error === 'INVALID_API_KEY') {
         console.error('[IMDB OTT] API key is invalid or unauthorized — please check your API key in the extension popup.');
+        return; // silent — affects every card
+      }
+      if (data.error === 'LIMIT_REACHED') {
+        console.error('[IMDB OTT] OMDb 1,000 requests/day limit reached! Ratings will return in 24 hours.');
         return; // silent — affects every card
       }
 

@@ -22,8 +22,9 @@ class PrimeVideoAdapter extends BaseAdapter {
   // that don't have a poster image inside them.
   getCardSelector() {
     return [
-      'a[href*="/detail/"]:has(img)',
-      'a[href*="/gp/video/detail/"]:has(img)',
+      'a[href*="/detail"]',
+      'a[href*="/dp/"]',
+      'a[href*="/gp/video/detail"]'
     ].join(', ');
   }
 
@@ -32,6 +33,9 @@ class PrimeVideoAdapter extends BaseAdapter {
   getBadgeContainer(cardElement) {
     const img = cardElement.querySelector('img');
     if (img && img.parentElement) {
+      if (img.parentElement.tagName.toLowerCase() === 'picture') {
+        return img.parentElement.parentElement;
+      }
       return img.parentElement;
     }
     return cardElement;
@@ -45,10 +49,17 @@ class PrimeVideoAdapter extends BaseAdapter {
       if (match) return { title: this.cleanTitle(match[1]) };
     }
 
-    // Reject pure Play / Watch buttons — they share the same /detail/ href
-    // but their aria-label is something like "Play Dating & New York" or
-    // "Watch now". We only want the thumbnail card links.
-    if (/^\s*(play|watch|resume|continue)\b/i.test(rawLabel.toLowerCase())) {
+    // Reject pure Play / Watch / Info buttons — they share the same /detail href
+    // but their aria-label is something like "Play Dating" or "More info".
+    if (/^\s*(play|watch|resume|continue|more info|info|details|episodes)\b/i.test(rawLabel.toLowerCase())) {
+      return null;
+    }
+
+    const img = cardElement.querySelector('img');
+    
+    // We only process links that actually contain an image (either poster or hero backdrop)
+    // to avoid injecting badges into plain text links or navigation elements.
+    if (!img) {
       return null;
     }
 
@@ -58,7 +69,7 @@ class PrimeVideoAdapter extends BaseAdapter {
       ? document.getElementById(labelledById)?.textContent?.trim()
       : null;
 
-    const img = cardElement.querySelector('img');
+
     const candidates = [
       cardElement.getAttribute('aria-label'),
       cardElement.querySelector('[aria-label]')?.getAttribute('aria-label'),

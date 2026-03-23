@@ -327,6 +327,46 @@ describe('fetchAndInject error handling', () => {
   });
 });
 
+// ── observeDOM ────────────────────────────────────────────────────────────────
+
+describe('observeDOM', () => {
+  test('re-processes a card when its descendant image is lazily loaded (e.g. Prime Video)', async () => {
+    // 1. Simulate primevideo card structure
+    const extractSpy = jest.fn().mockReturnValue({ title: 'Delayed Title' });
+    const adapter = makeTestAdapter({ extract: extractSpy });
+    
+    // We mock getCardSelector to match our test container
+    adapter.getCardSelector = () => '.tst-packshot';
+    
+    adapter.processCard = jest.fn();
+    adapter.observeDOM();
+
+    // 2. Add an empty link card
+    const card = document.createElement('a');
+    card.className = 'tst-packshot';
+    card.href = '/detail/12345';
+    document.body.appendChild(card); // Observer captures it, fires processCard(card)
+
+    // Wait for initial mutation tick
+    await Promise.resolve();
+    expect(adapter.processCard).toHaveBeenCalledWith(card);
+    adapter.processCard.mockClear();
+
+    // 3. LAZY LOAD: Now append the thumbnail image inside it!
+    const img = document.createElement('img');
+    img.alt = 'Delayed Title';
+    card.appendChild(img);
+
+    // Wait for subsequent mutation tick
+    await Promise.resolve();
+
+    // 4. VERIFY: Specifically check that the MutationObserver saw the <img> appended, 
+    // mapped it upwards using closest(), and successfully passed the parent <a class="tst-packshot"> 
+    // back into processCard to be re-evaluated now that its image is present!
+    expect(adapter.processCard).toHaveBeenCalledWith(card);
+  });
+});
+
 // ── isContextValid ────────────────────────────────────────────────────────────
 
 describe('isContextValid', () => {

@@ -96,6 +96,20 @@ describe('fetchRatingFromOMDb', () => {
     expect(result).toEqual({ error: 'INVALID_API_KEY' });
   });
 
+  test('returns { error: "LIMIT_REACHED" } when OMDb returns "Request limit reached!"', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      clone: () => ({
+        json: async () => ({ Response: 'False', Error: 'Request limit reached!' })
+      }),
+      json: async () => ({ Response: 'False', Error: 'Request limit reached!' }),
+    });
+
+    const result = await global.fetchRatingFromOMDb('Inception', null);
+    expect(result).toEqual({ error: 'LIMIT_REACHED' });
+  });
+
   test('returns most prominent result for title query without enforcing movie type', async () => {
     let callCount = 0;
     global.fetch = jest.fn().mockImplementation(async (url) => {
