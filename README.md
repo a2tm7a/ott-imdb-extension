@@ -12,11 +12,30 @@ Badges are color-coded for instant decision making:
 
 | Tier | Rating | Color |
 |------|--------|-------|
-| 💎 **Great** | ≥ 8.0 | 🟢 Green `#4caf50` |
-| ✅ **Good** | 6.5 – 7.9 | 🟠 Orange `#ff9800` |
-| ⚠️ **Poor** | < 6.5 | 🔴 Red `#f44336` |
-| ❓ **N/A** | Unrated | ⚪ Grey (Upcoming/Obscure) |
+| 💎 **Great** | ≥ 8.0 | 🟢 Green |
+| ✅ **Good** | 6.5 – 7.9 | 🔵 Blue |
+| ⚠️ **Poor** | < 6.5 | 🔴 Red |
 
+---
+
+## 🌟 IMDb Badge Legend
+
+The extension uses color-coded badges to help you make decisions in milliseconds:
+
+### Success States (Ratings Found)
+| Badge Style | Score | Quality Tier |
+|:---:|:---:|:---|
+| **★ 8.0+** | 🟢 | **Must Watch** — High-rated "Great" content. |
+| **★ 6.5–7.9** | 🔵 | **Solid Pick** — "Good" and reliable entertainment. |
+| **★ < 6.5** | 🔴 | **Proceed with Caution** — Lower-rated or niche content. |
+
+### Fallback States (Gray/Muted)
+When a numerical rating isn't available, these symbols explain why:
+| Icon | Status | Meaning |
+|:---:|:---|:---|
+| **★ ?** | **Unknown** | The title could not be identified on IMDb (Search failed). |
+| **★ N/A** | **Data Missing** | Metadata found, but no rating exists yet (Upcoming/Obscure). |
+| **★ —** | **Error** | A technical connection failure or network timeout occurred. |
 ---
 
 ## ✨ Key Features
@@ -85,12 +104,13 @@ The extension includes a robust test suite to ensure stability across frequent s
 
 ## 💡 Troubleshooting
 
-| Issue | Cause | Fix |
-|---|---|---|
-| **Ratings show N/A** | OMDb found title but no rating exists | Correct behavior for brand-new or obscure titles. |
-| **Ratings show "?"** | Search failed for that exact title | Check if the title is very new or has a specialized name. |
-| **No badges appear** | API Key missing or Invalid | Open the popup and verify your key. |
-| **"Rate limit reached"** | 1,000 daily request limit hit | Your ratings will automatically return in 24 hours. |
+| Issue | Cause | Status Symbol |
+|---|---|:---:|
+| **Title Unknown** | OMDb search failed for that exact name | **★ ?** |
+| **Rating Missing** | Found title but no rating score exists yet | **★ N/A** |
+| **Network Error** | Connection failed or technical timeout | **★ —** |
+| **No badges appear** | API Key missing or Invalid | (Silent) |
+| **Rate limit reach** | 1,000 daily request limit reached | (Silent) |
 
 ---
 
