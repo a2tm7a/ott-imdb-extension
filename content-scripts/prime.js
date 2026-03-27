@@ -85,10 +85,16 @@ class PrimeVideoAdapter extends BaseAdapter {
   // ── Override badge insertion to ensure it renders ON TOP of images ────────
 
   _buildAndInsertBadge(cardElement, ratingText, colorClass, ariaLabel) {
-    if (cardElement.querySelector('.imdb-ott-badge')) return;
-
     const container = this.getBadgeContainer(cardElement);
     if (!container) return;
+
+    // Duplication check: Prime Video often has multiple links for the same hero movie
+    // (logo, title, info button). We only want ONE badge per visual item slide or carousel LI.
+    const itemContainer = cardElement.closest('li, [class*="hero-wrapper"], [class*="hero-container"], [class*="HeroSlide"], [class*="slide"]');
+    if (itemContainer && itemContainer !== cardElement && (itemContainer.querySelector('.imdb-ott-badge') || itemContainer.querySelector('.imdb-ott-anchor'))) {
+      console.log(`[IMDB OTT] Skip: item container already has a badge.`);
+      return;
+    }
 
     const badge = document.createElement('div');
     badge.className = `imdb-ott-badge ${colorClass}`;
@@ -152,7 +158,8 @@ class PrimeVideoAdapter extends BaseAdapter {
       }
     }
 
-    if (/^\s*(play|watch|resume|continue|more info|info|details|episodes)\b/i.test(rawLabel)) {
+    // Exclude noisy button labels (Play, Watch, Episodes, etc.)
+    if (/\b(play|watch|resume|continue|more info|info|details|episodes?)\b/i.test(rawLabel)) {
       return null;
     }
 
