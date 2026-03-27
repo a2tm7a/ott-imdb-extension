@@ -202,12 +202,12 @@ class BaseAdapter {
       // Per-title failures — show a badge so the user knows we tried
       if (data.error === 'NOT_FOUND') {
         logDebug(`[IMDB OTT] "${title}" not found on OMDb.`);
-        this.injectFallbackBadge(cardElement, 'N/A', `"${title}" not found on IMDb`);
+        this.injectFallbackBadge(cardElement, '?', `The title "${title}" was not found on IMDb`);
         return;
       }
       if (!data.imdbRating) {
         logDebug(`[IMDB OTT] "${title}" found but rating is unavailable.`);
-        this.injectFallbackBadge(cardElement, '?', `"${title}" has no rating yet on IMDb`);
+        this.injectFallbackBadge(cardElement, 'N/A', `A rating for "${title}" is not yet available on IMDb`);
         return;
       }
 

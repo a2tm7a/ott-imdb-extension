@@ -87,12 +87,12 @@ describe('injectFallbackBadge', () => {
     const card = document.createElement('div');
     document.body.appendChild(card);
 
-    adapter.injectFallbackBadge(card, 'N/A', 'Title not found on IMDb');
+    adapter.injectFallbackBadge(card, '?', 'Title not found on IMDb');
 
     const badge = card.querySelector('.imdb-ott-badge');
     expect(badge).not.toBeNull();
     expect(badge.classList.contains('imdb-ott-badge--na')).toBe(true);
-    expect(card.querySelector('.imdb-ott-badge__rating').textContent).toBe('N/A');
+    expect(card.querySelector('.imdb-ott-badge__rating').textContent).toBe('?');
     card.remove();
   });
 
@@ -255,7 +255,7 @@ describe('fetchAndInject error handling', () => {
     card.remove();
   });
 
-  test('injects N/A fallback badge on NOT_FOUND', async () => {
+  test('injects FAQ fallback badge (?) on NOT_FOUND', async () => {
     adapter.fetchRating.mockResolvedValue({ error: 'NOT_FOUND' });
     const card = document.createElement('div');
     document.body.appendChild(card);
@@ -266,11 +266,11 @@ describe('fetchAndInject error handling', () => {
     const badge = card.querySelector('.imdb-ott-badge');
     expect(badge).not.toBeNull();
     expect(badge.classList.contains('imdb-ott-badge--na')).toBe(true);
-    expect(card.querySelector('.imdb-ott-badge__rating').textContent).toBe('N/A');
+    expect(card.querySelector('.imdb-ott-badge__rating').textContent).toBe('?');
     card.remove();
   });
 
-  test('injects "?" badge when rating is null (found but no rating)', async () => {
+  test('injects "N/A" badge when rating is null (found but no rating)', async () => {
     adapter.fetchRating.mockResolvedValue({ imdbID: 'tt1234567', title: 'New Film', imdbRating: null });
     const card = document.createElement('div');
     document.body.appendChild(card);
@@ -279,7 +279,7 @@ describe('fetchAndInject error handling', () => {
     await adapter.fetchAndInject(card, { title: 'New Film' });
 
     const ratingEl = card.querySelector('.imdb-ott-badge__rating');
-    expect(ratingEl.textContent).toBe('?');
+    expect(ratingEl.textContent).toBe('N/A');
     card.remove();
   });
 
