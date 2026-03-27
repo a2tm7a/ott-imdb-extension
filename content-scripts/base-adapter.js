@@ -3,9 +3,9 @@
 // Extend this for Netflix, Prime Video, Hotstar, etc.
 // ============================================================
 
-const DEBUG = false;
+const DEBUG = true;
 const log = (...args) => { if (DEBUG) console.log(...args); };
-const logDebug = (...args) => { if (DEBUG) console.debug(...args); };
+const logDebug = (...args) => { if (DEBUG) console.log(...args); };
 const logWarn = (...args) => { if (DEBUG) console.warn(...args); };
 
 const RATING_GREAT = 8.0;
